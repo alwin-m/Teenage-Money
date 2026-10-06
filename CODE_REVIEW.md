@@ -1,5 +1,14 @@
 # Code review
 
+## Licensing and ownership audit
+
+- No project-owned open-source license file is present.
+- `package.json` is marked private.
+- JavaScript dependencies have been inventoried with `pnpm licenses list`.
+- Android/Gradle dependencies remain under their upstream licenses; no notices were removed.
+- `android/local.properties`, build directories, APKs, and signing artifacts are now ignored to prevent accidental commits.
+- The Android wrapper had an unnecessary `INTERNET` permission for bundled offline assets; it was removed.
+
 ## Findings
 
 | Severity | Area | Finding | Status |

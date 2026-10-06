@@ -1,5 +1,9 @@
 # Teenage Money
 
+**Private proprietary software. Copyright © 2026 Alwin Madhu. All rights reserved.**
+
+Teenage Money is not open source and must not be redistributed, relicensed, or published as a public repository. See [PROPRIETARY_NOTICE.md](PROPRIETARY_NOTICE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 A polished React/Vite prototype for the Teenage Money local-first money dashboard.
 
 ## Run locally

@@ -7,4 +7,10 @@ dist/
 coverage/
 .idea/
 .vscode/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
 
