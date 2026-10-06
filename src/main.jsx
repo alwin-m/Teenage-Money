@@ -209,8 +209,7 @@ function App() {
       {/* Desktop / Tablet Sidebar */}
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">tm</div>
-          <div><strong>teenage</strong><span>money</span></div>
+          <img className="brand-lockup" src="/teenage-money-logo-lockup.png" alt="Teenage Money" />
         </div>
         <div className="profile">
           <div className="avatar">A</div>
@@ -246,7 +245,7 @@ function App() {
         {/* Mobile Header */}
         <header className="mobile-header">
           <div className="mobile-brand">
-            <div className="brand-mark mini">tm</div>
+            <img className="brand-lockup mobile-lockup" src="/teenage-money-logo-lockup.png" alt="Teenage Money" />
             <div>
               <p className="eyebrow">TUESDAY, 6 AUG</p>
               <h2>{active === 'Home' ? 'Hey, Alex' : active}</h2>

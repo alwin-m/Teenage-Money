@@ -1520,3 +1520,4 @@ body {
     color: var(--ink);
   }
 }
+:root{--logo-ink:#17171a}.brand-lockup{display:block;width:118px;height:auto;object-fit:contain}.mobile-lockup{width:112px;max-height:34px;object-fit:contain;object-position:left center}.mobile-brand{gap:10px}

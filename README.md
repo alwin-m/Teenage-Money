@@ -15,7 +15,7 @@ npm install
 npm run dev
 ```
 
-The current prototype keeps expense entries in in-memory React state so the interaction loop can be tested quickly. The visual system is original: charcoal, clay, mint, and lavender surfaces with a small orbit illustration as the dashboard's living-world motif.
+Expense entries and money-space balances persist locally in the browser/WebView. The visual system is original: charcoal, clay, mint, and lavender surfaces with a small orbit illustration as the dashboard's living-world motif.
 
 ## Build Android APK
 

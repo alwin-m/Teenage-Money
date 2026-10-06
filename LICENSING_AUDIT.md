@@ -45,7 +45,7 @@ The CSS references Manrope and DM Mono from Google Fonts. The upstream font proj
 
 ### Project-owned assets
 
-The repository contains original Teenage Money UI styling, receipt treatment, icon resources, and visual assets. No copied third-party images, logos, or proprietary illustrations were identified in the project-owned source tree.
+The repository contains original Teenage Money UI styling, receipt treatment, icon resources, visual assets, and the owner-supplied `teenage-money-logo-lockup.png` brand asset. No copied third-party images, logos, or proprietary illustrations were identified in the project-owned source tree.
 
 ## Removed or replaced components
 
