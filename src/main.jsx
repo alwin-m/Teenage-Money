@@ -16,6 +16,58 @@ const defaultGoals = [
 
 const money = n => '₹' + Number(n || 0).toLocaleString('en-IN');
 
+const calculateAge = dob => {
+  const birth = new Date(`${dob}T00:00:00`);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const beforeBirthday = today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate());
+  if (beforeBirthday) age -= 1;
+  return age;
+};
+
+function Splash({ onDone }) {
+  useEffect(() => { const timer = setTimeout(onDone, 700); return () => clearTimeout(timer); }, [onDone]);
+  return <div className="onboarding-screen splash-screen"><img src="/teenage-money-logo-lockup.png" alt="Teenage Money" /><span>your money, your way.</span></div>;
+}
+
+function Onboarding({ onComplete }) {
+  const [step, setStep] = useState('name');
+  const [name, setName] = useState('');
+  const [dob, setDob] = useState('');
+  const [status, setStatus] = useState([]);
+  const [age, setAge] = useState(null);
+  const [transitionText, setTransitionText] = useState('');
+
+  const goTo = (next, lines = []) => {
+    setTransitionText(lines.join('|'));
+    setStep(next);
+  };
+  useEffect(() => {
+    if (!['greeting', 'ageTransition', 'welcome'].includes(step)) return;
+    const timer = setTimeout(() => {
+      if (step === 'greeting') setStep('dob');
+      if (step === 'ageTransition') setStep('status');
+      if (step === 'welcome') finish();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [step]);
+  const finish = () => {
+    const profile = { name: name.trim(), dateOfBirth: dob, age, status };
+    localStorage.setItem('tm-profile', JSON.stringify(profile));
+    localStorage.setItem('tm-onboarding-completed', 'true');
+    onComplete(profile);
+  };
+  const submitName = e => { e.preventDefault(); const clean = name.trim().replace(/\s+/g, ' '); if (clean.length < 2 || clean.length > 40) return; setName(clean); goTo('greeting', [`Hello ${clean} 👋`]); };
+  const submitDob = e => { e.preventDefault(); if (!dob || new Date(`${dob}T00:00:00`) > new Date()) return; const nextAge = calculateAge(dob); setAge(nextAge); goTo('ageTransition', [`So, you’re ${nextAge}.`, 'That’s a great time to start taking control of your money.']); };
+  const toggleStatus = value => setStatus(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value]);
+
+  if (step === 'greeting' || step === 'ageTransition') return <div className="onboarding-screen transition-screen" onClick={() => setStep(step === 'greeting' ? 'dob' : 'status')}><div className="transition-copy">{transitionText.split('|').map((line, i) => <p key={line} className={i === 0 ? 'transition-primary' : ''}>{line}</p>)}</div><span className="tap-hint">Tap to continue</span></div>;
+  if (step === 'welcome') return <div className="onboarding-screen transition-screen" onClick={finish}><div className="transition-copy"><p className="transition-primary">You’re all set, {name}! 🎉</p><p>Let’s make your money work for you.</p></div><span className="tap-hint">Tap to enter</span></div>;
+  if (step === 'status') return <div className="onboarding-screen question-screen"><div className="onboarding-top"><span className="onboarding-step">03 / 03</span><div className="onboarding-progress"><i style={{ width: '100%' }} /></div></div><div className="question-content"><p className="eyebrow">A LITTLE CONTEXT</p><h1>What best describes you right now?</h1><p className="question-sub">Choose both if they both fit.</p><div className="status-options"><button className={status.includes('Student') ? 'status-option selected' : 'status-option'} onClick={() => toggleStatus('Student')}><span>🎓</span><strong>Student</strong><b>{status.includes('Student') ? '✓' : '+'}</b></button><button className={status.includes('Working Professional') ? 'status-option selected' : 'status-option'} onClick={() => toggleStatus('Working Professional')}><span>💼</span><strong>Working Professional</strong><b>{status.includes('Working Professional') ? '✓' : '+'}</b></button></div><button className="onboarding-primary" onClick={() => setStep('welcome')}>Continue <span>→</span></button><button className="skip-button" onClick={() => { setStatus([]); setStep('welcome'); }}>Skip for now</button></div></div>;
+  if (step === 'dob') return <form className="onboarding-screen question-screen" onSubmit={submitDob}><div className="onboarding-top"><span className="onboarding-step">02 / 03</span><div className="onboarding-progress"><i style={{ width: '66%' }} /></div></div><div className="question-content"><p className="eyebrow">JUST ONE MORE THING</p><h1>When were you born?</h1><p className="question-sub">We’ll use it to keep your profile and age up to date.</p><label className="date-field">Date of birth<input type="date" value={dob} max={new Date().toISOString().slice(0, 10)} onChange={e => setDob(e.target.value)} required /></label><button className="onboarding-primary" type="submit">Continue <span>→</span></button></div></form>;
+  return <form className="onboarding-screen question-screen" onSubmit={submitName}><div className="onboarding-top"><span className="onboarding-step">01 / 03</span><div className="onboarding-progress"><i style={{ width: '33%' }} /></div></div><div className="question-content"><p className="eyebrow">WELCOME IN</p><h1>What should we call you?</h1><p className="question-sub">A name makes this feel a little more yours.</p><label className="name-field"><span>Your name</span><input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Alex" maxLength={40} autoComplete="name" /></label><button className="onboarding-primary" type="submit">Continue <span>→</span></button></div></form>;
+}
+
 const triggerHaptic = (duration = 15) => {
   try {
     if (window.Android && typeof window.Android.vibrate === 'function') {
@@ -29,6 +81,10 @@ const triggerHaptic = (duration = 15) => {
 };
 
 function App() {
+  const [entry, setEntry] = useState('loading');
+  const [profile, setProfile] = useState(() => { try { return JSON.parse(localStorage.getItem('tm-profile') || 'null'); } catch { return null; } });
+  useEffect(() => { const timer = setTimeout(() => setEntry(localStorage.getItem('tm-onboarding-completed') === 'true' ? 'home' : 'onboarding'), 700); return () => clearTimeout(timer); }, []);
+  const userName = profile?.name || 'there';
   const [active, setActive] = useState('Home');
   const [transactions, setTransactions] = useState(() => {
     try {
@@ -204,6 +260,9 @@ function App() {
     { name: 'Insights', icon: '⌁' },
   ];
 
+  if (entry === 'loading') return <Splash onDone={() => {}} />;
+  if (entry === 'onboarding') return <Onboarding onComplete={nextProfile => { setProfile(nextProfile); setEntry('home'); }} />;
+
   return (
     <div className="app-shell">
       {/* Desktop / Tablet Sidebar */}
@@ -213,8 +272,8 @@ function App() {
         </div>
         <div className="profile">
           <div className="avatar">A</div>
-          <div><strong>Hey, Alex</strong><span>Building your future</span></div>
-          <button className="dots" onClick={() => showToastMsg('Alex’s Offline Wallet')}>•••</button>
+          <div><strong>Hey, {userName}</strong><span>Building your future</span></div>
+          <button className="dots" onClick={() => showToastMsg(`${userName}’s Offline Wallet`)}>•••</button>
         </div>
         <nav>
           {navItems.map(item => (
@@ -248,7 +307,7 @@ function App() {
             <img className="brand-lockup mobile-lockup" src="/teenage-money-logo-lockup.png" alt="Teenage Money" />
             <div>
               <p className="eyebrow">TUESDAY, 6 AUG</p>
-              <h2>{active === 'Home' ? 'Hey, Alex' : active}</h2>
+              <h2>{active === 'Home' ? `Hey, ${userName}` : active}</h2>
             </div>
           </div>
           <div className="mobile-actions">
@@ -273,7 +332,7 @@ function App() {
             <button className="icon-btn" onClick={() => showToastMsg('All offline searches active')}>⌕</button>
             <button className="icon-btn" onClick={() => { triggerHaptic(10); setShowAddMoney(true); }} title="Add Money">＋</button>
             <button className="profile-pill">
-              <span className="mini-avatar">A</span>Alex <span>⌄</span>
+              <span className="mini-avatar">{userName[0]?.toUpperCase()}</span>{userName} <span>⌄</span>
             </button>
           </div>
         </header>
