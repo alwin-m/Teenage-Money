@@ -18,6 +18,10 @@ These are dependency licenses, not a license for Teenage Money. Their license te
 
 The Android wrapper uses AndroidX Core KTX, AndroidX Activity KTX, AndroidX WebKit, the Android Gradle Plugin, Kotlin tooling, and the Gradle wrapper. Their upstream license and notice files are part of their respective distributions. The project does not remove or rewrite those notices.
 
+## Fonts
+
+The stylesheet references Manrope and DM Mono from Google Fonts. These fonts are third-party assets licensed under the SIL Open Font License 1.1 by their upstream projects. The font license applies only to the font software; it does not license Teenage Money's code, brand, UI, or documentation. Preserve the applicable font notice if font files are bundled in a future release.
+
 ## Audit result
 
 No standalone MIT, Apache, GPL, BSD, or similar license file was found in the project-owned source tree. No third-party license notice was removed. The dependency list above must be re-audited whenever dependencies change.
