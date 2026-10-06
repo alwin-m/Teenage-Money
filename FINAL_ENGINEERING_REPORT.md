@@ -2,7 +2,7 @@
 
 ## Status
 
-The existing Vite prototype was reviewed and improved within its current architecture.
+The existing Vite/React application and Android WebView wrapper were reviewed and improved within their current architecture.
 
 ## Executed checks
 
@@ -12,15 +12,15 @@ The existing Vite prototype was reviewed and improved within its current archite
 
 ## Not executed / blocked
 
-- Android build and APK installation: no Android/Gradle project exists.
+- APK installation and launch on a physical device: no `adb` or emulator is available in this environment.
 - Native UI, instrumentation, offline airplane-mode, and Android memory tests.
 - GitHub repository creation: no GitHub remote or repository connector is configured.
 
 ## Remaining risks
 
-Browser localStorage is not encrypted. Transaction editing/deletion, onboarding, profile, calendar, analytics, and native persistence remain incomplete for production.
+WebView localStorage is not encrypted. Transaction editing/deletion, onboarding, profile, calendar, analytics, and native Room/Keystore persistence remain incomplete for production.
 
 ## Recommended next steps
 
-Create a Kotlin/Compose Android module from the current domain requirements, migrate the pure financial rules, add Room + Keystore storage, then add Android UI/integration tests before creating a private GitHub repository and APK pipeline.
+Migrate the data layer to Room + Keystore-backed storage, then add Android UI/integration tests and physical-device verification before treating the APK as production-ready.
 

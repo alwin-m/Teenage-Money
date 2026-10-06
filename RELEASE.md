@@ -1,6 +1,6 @@
 # Release status
 
-Current release target is a local web prototype. The production gate is currently: `pnpm test` and `pnpm build` pass, no secrets are committed, and the browser flow is manually checked.
+Current release target is an Android WebView wrapper around the bundled local web app. The production gate is currently: `pnpm test`, `pnpm build`, and both Gradle APK tasks pass, no secrets are committed, and the browser flow is manually checked.
 
-Android APK release is blocked until a native Android project is introduced. Do not invent signing credentials or claim an APK exists.
+Debug and locally signed release APKs are available for device testing. The release APK uses the debug signing configuration and is not store-ready.
 

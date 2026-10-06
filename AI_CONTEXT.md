@@ -1,6 +1,6 @@
 # AI context
 
-Teenage Money is a playful offline-first money dashboard prototype. It currently runs as a Vite/React browser app, not a native Android app.
+Teenage Money is a playful offline-first money dashboard. It runs as a Vite/React app bundled into an Android WebView wrapper under `android/`.
 
 The project is private proprietary software owned by Alwin Madhu. Never add an open-source license, publish the repository, or describe the project as open source. See `PROPRIETARY_NOTICE.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSING_AUDIT.md`.
 
@@ -8,5 +8,5 @@ Important files are `src/main.jsx`, `src/styles.css`, and `src/finance.js`. The 
 
 Do not reintroduce seeded financial data, fake balances, fake charts, cloud financial storage, analytics, or bank integrations. All displayed financial values must derive from the current local state. Use `pnpm test` and `pnpm build` after changes.
 
-Known limitations: no Kotlin/Compose module, no APK generation, no onboarding/profile persistence, no edit/delete transaction flow, no encrypted storage, no automated browser tests, and no GitHub remote configured. The next production step is a deliberate native migration with a shared domain model, Room persistence, Keystore protection, and Android UI/instrumentation tests.
+Known limitations: the Android shell is not a full Kotlin/Compose rewrite; financial data currently uses WebView localStorage rather than Room/Keystore; onboarding/profile persistence, edit/delete transaction flow, automated browser tests, and physical-device verification are incomplete; no GitHub remote is configured.
 
