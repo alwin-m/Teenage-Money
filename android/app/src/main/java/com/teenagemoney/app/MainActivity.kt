@@ -2,9 +2,7 @@ package com.teenagemoney.app
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -52,9 +50,9 @@ class MainActivity : ComponentActivity() {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
-        settings.allowFileAccess = true
-        settings.allowContentAccess = true
-        settings.cacheMode = WebSettings.LOAD_DEFAULT
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
+        settings.cacheMode = WebSettings.LOAD_NO_CACHE
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
         settings.displayZoomControls = false
@@ -108,8 +106,17 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        // Load Teenage Money application from offline assets
-        webView.loadUrl("https://appassets.androidplatform.net/index.html")
+        // Load the bundled entry point with a stable local origin. This avoids the
+        // blank-screen failure caused by relying on a root URL interception for
+        // index.html while keeping relative JS/CSS asset paths offline.
+        val entryHtml = assets.open("index.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
+        webView.loadDataWithBaseURL(
+            "https://appassets.androidplatform.net/",
+            entryHtml,
+            "text/html",
+            "UTF-8",
+            null
+        )
     }
 
     override fun onDestroy() {
