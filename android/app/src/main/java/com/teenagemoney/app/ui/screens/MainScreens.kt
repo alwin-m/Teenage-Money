@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -60,6 +63,7 @@ import com.teenagemoney.app.ui.theme.TMMintText
 import com.teenagemoney.app.ui.theme.TMMuted
 import com.teenagemoney.app.ui.theme.TMPeachBg
 import com.teenagemoney.app.ui.theme.TMPeachBorder
+import com.teenagemoney.app.ui.theme.TMPeachText
 import com.teenagemoney.app.ui.theme.TMPurple
 import com.teenagemoney.app.ui.theme.TMWhite
 import java.time.LocalDate
@@ -694,8 +698,11 @@ fun ProfileScreen(
     spaces: List<MoneySpace>,
     transactions: List<TransactionItem>,
     soundEnabled: Boolean,
+    amountsMasked: Boolean,
     appVersion: String,
     buildId: String,
+    onEditProfile: () -> Unit,
+    onPrivacyToggle: (Boolean) -> Unit,
     onSaveSalary: (Double) -> Unit,
     onSoundEnabledChange: (Boolean) -> Unit,
     onExport: () -> Unit
@@ -708,10 +715,33 @@ fun ProfileScreen(
         modifier = Modifier.fillMaxSize().background(TMBackground).padding(horizontal = 20.dp).verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(20.dp))
-        Text("YOUR PROFILE", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp, color = TMLightMuted)
-        Text("${profile?.name ?: "Your"}'s money", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TMInk)
-        Text("Your private, offline financial picture.", fontSize = 13.sp, color = TMMuted, modifier = Modifier.padding(top = 2.dp))
+        Text("Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TMInk)
+        Text("Your space, your way.", fontSize = 13.sp, color = TMMuted, modifier = Modifier.padding(top = 2.dp))
         Spacer(modifier = Modifier.height(20.dp))
+        ProfileCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val initials = profile?.name
+                    ?.trim()
+                    ?.split(Regex("\\s+"))
+                    ?.filter { it.isNotEmpty() }
+                    ?.take(2)
+                    ?.joinToString("") { it.first().uppercase() }
+                    ?.ifEmpty { "TM" } ?: "TM"
+                Box(
+                    modifier = Modifier.size(56.dp).clip(CircleShape).background(TMPeachBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(initials, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TMPeachText)
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(profile?.name?.ifBlank { "Your name" } ?: "Your name", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TMInk)
+                    Text("Stored privately on this device", fontSize = 12.sp, color = TMMuted)
+                }
+                TextButton(onClick = onEditProfile) { Text("Edit", color = TMInk, fontWeight = FontWeight.Bold) }
+            }
+        }
+        Spacer(modifier = Modifier.height(14.dp))
         Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TMWhite).border(1.dp, TMLine, RoundedCornerShape(22.dp)).padding(20.dp)) {
             Column {
                 Text("MONTHLY SALARY", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMLightMuted)
@@ -732,12 +762,27 @@ fun ProfileScreen(
                         Text("Receipt sound & haptics", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TMInk)
                         Text("A subtle confirmation after a saved expense", fontSize = 12.sp, color = TMMuted)
                     }
-                    Text(if (soundEnabled) "ON" else "OFF", color = if (soundEnabled) TMCoral else TMMuted, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { onSoundEnabledChange(!soundEnabled) }.padding(8.dp))
+                    Switch(checked = soundEnabled, onCheckedChange = onSoundEnabledChange)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Box(modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(TMLine).clickable { onExport() }.padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Text("Export my data", color = TMInk, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
+            }
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+        ProfileCard {
+            Text("PRIVACY", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMLightMuted)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Hide financial amounts", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TMInk)
+                    Text("Mask balances and transaction amounts across the app", fontSize = 12.sp, color = TMMuted)
+                }
+                Switch(checked = amountsMasked, onCheckedChange = onPrivacyToggle)
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
@@ -772,6 +817,19 @@ fun ProfileScreen(
         }
         Spacer(modifier = Modifier.height(90.dp))
     }
+}
+
+@Composable
+private fun ProfileCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(TMWhite)
+            .border(1.dp, TMLine, RoundedCornerShape(22.dp))
+            .padding(20.dp),
+        content = content
+    )
 }
 
 @Composable

@@ -2,6 +2,40 @@
 
 This is the cumulative product ledger. Entries describe changes that are present in the repository and are intended to make an APK identifiable without relying on memory or chat history.
 
+## Unreleased — proposed 1.1.0
+
+### Added
+
+- Local Profile editing with persisted display-name updates.
+- A Profile identity card with initials and local-storage context.
+- A Privacy section with a functional Hide financial amounts switch.
+
+### Changed
+
+- Reordered Profile content into identity, preferences, privacy, metrics, category summary, and About sections.
+- Replaced the receipt sound text toggle with a proper switch control.
+- Clarified Profile copy as “Your space, your way.” and kept technical build details inside About this app.
+
+### Data and Storage
+
+- No schema, migration, transaction, balance, goal, or money-space changes.
+- Display-name edits reuse the existing local profile preference storage.
+
+### Accessibility
+
+- Replaced text-only preference toggles with Material switches that expose checked state semantics.
+- Kept the edit action and settings controls in standard Compose touch-target components.
+
+### Documentation
+
+- Added change record `TM-CHANGE-000002` and UI/UX history for this work.
+
+### Release status
+
+- In progress; not released as `1.1.0` yet.
+- Release-candidate build identifier: `1.0.0-20261012.2355`
+- Release-candidate APK SHA-256: `1D01721EAFF007FD49D8AD9DACF9A35E5445C731A33AF6251FF67B1C781092B6`
+
 ## 1.0.0 — Shipping version — 2026-10-12
 
 ### Product and UI/UX

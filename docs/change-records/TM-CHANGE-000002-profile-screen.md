@@ -1,0 +1,21 @@
+# TM-CHANGE-000002 — Profile screen refinement
+
+- **Date:** 2026-10-12, Asia/Calcutta
+- **Author:** Codex
+- **Base version:** `1.0.0`
+- **Target version:** Proposed `1.1.0`
+- **Affected components:** Profile Compose screen, profile edit sheet, local profile preference storage, privacy preference control, release documentation.
+- **Category:** UI, UX, accessibility, feature, documentation.
+- **Previous behavior:** Users could view profile-related information, edit salary, toggle receipt feedback through a small text control, export data, and see financial summaries. The display name could not be edited from Profile, and privacy masking was not surfaced there.
+- **New behavior:** Users can edit their stored display name through a dismissible sheet, see initials, toggle the existing amount-masking preference from Profile, use a standard sound switch, and find version/build details in About this app.
+- **Reason:** Make Profile a useful, trustworthy control surface while preserving the existing offline-first product identity.
+- **Implementation details:** Reused `UserProfile` and `saveUserProfile`; added `EditProfileSheet`; passed existing privacy state into Profile; used Material `Switch`; retained existing navigation and bottom-sheet patterns.
+- **User impact:** Profile name and amount-visibility preferences are easier to understand and change. No account or network flow is introduced.
+- **Data impact:** No database schema or migration changes. Existing profile preferences are preserved; financial records are untouched.
+- **Compatibility impact:** Existing Android min/target SDK and navigation routes remain unchanged.
+- **Security and privacy impact:** Privacy masking is surfaced more clearly. The app remains local-only; no new permissions or network calls are added.
+- **Tests performed:** `pnpm test`, `pnpm build`, and `./gradlew.bat lint testDebugUnitTest assembleDebug assembleRelease '-PtmBuildStamp=20261012.2355'` passed.
+- **Known limitations:** No avatar upload, app lock, theme selector, notification privacy control, or destructive data reset was added because those capabilities do not exist reliably in the current app.
+- **Related changes:** `VERSIONING.md`, `CHANGELOG.md`, `docs/UI_UX_HISTORY.md`.
+- **Release artifact:** `android/app/build/outputs/apk/release/app-release.apk`, build ID `1.0.0-20261012.2355`, SHA-256 `1D01721EAFF007FD49D8AD9DACF9A35E5445C731A33AF6251FF67B1C781092B6`.
+- **Release status:** In progress; proposed for `1.1.0`, not released.

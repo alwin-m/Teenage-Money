@@ -50,6 +50,7 @@ import com.teenagemoney.app.ui.components.AddGoalSheet
 import com.teenagemoney.app.ui.components.AddMoneySheet
 import com.teenagemoney.app.ui.components.AddSpaceSheet
 import com.teenagemoney.app.ui.components.AdjustBalanceSheet
+import com.teenagemoney.app.ui.components.EditProfileSheet
 import com.teenagemoney.app.ui.components.GoalContributionSheet
 import com.teenagemoney.app.ui.components.BottomNavBar
 import com.teenagemoney.app.ui.components.ReceiptDialog
@@ -94,6 +95,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
     var showAddGoal by remember { mutableStateOf(false) }
     var showAddSpace by remember { mutableStateOf(false) }
     var showAddCategory by remember { mutableStateOf(false) }
+    var showEditProfile by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<MoneySpace?>(null) }
     var contributingGoal by remember { mutableStateOf<SavingsGoal?>(null) }
     var categories by remember { mutableStateOf(repository.getCategories()) }
@@ -174,7 +176,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             val spendingSpace = spaces.find { it.name == "Spending" }
             val spendingBalance = spendingSpace?.balance ?: 0.0
 
-            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddGoal || showAddSpace || showAddCategory || editingSpace != null || contributingGoal != null || activeTab != "Home") {
+            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddGoal || showAddSpace || showAddCategory || showEditProfile || editingSpace != null || contributingGoal != null || activeTab != "Home") {
                 when {
                     activeReceipt != null -> activeReceipt = null
                     showAddExpense -> showAddExpense = false
@@ -182,6 +184,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                     showAddGoal -> showAddGoal = false
                     showAddSpace -> showAddSpace = false
                     showAddCategory -> showAddCategory = false
+                    showEditProfile -> showEditProfile = false
                     editingSpace != null -> editingSpace = null
                     contributingGoal != null -> contributingGoal = null
                     else -> activeTab = "Home"
@@ -272,8 +275,14 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                 spaces = spaces,
                                 transactions = transactions,
                                 soundEnabled = soundEnabled,
+                                amountsMasked = amountsMasked,
                                 appVersion = BuildConfig.VERSION_NAME,
                                 buildId = BuildConfig.BUILD_ID,
+                                onEditProfile = { showEditProfile = true },
+                                onPrivacyToggle = { enabled ->
+                                    amountsMasked = enabled
+                                    repository.savePrivacyMode(enabled)
+                                },
                                 onSaveSalary = { salary ->
                                     repository.saveMonthlySalary(salary)
                                     showToast("Monthly salary saved")
@@ -450,6 +459,26 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                             showAddExpense = true
                             showToast("$name added to categories")
                         } catch (e: Exception) { showToast(e.message ?: "Could not add category") }
+                    },
+                    onError = { msg -> showToast(msg) }
+                )
+            }
+
+            if (showEditProfile) {
+                EditProfileSheet(
+                    currentName = userProfile?.name ?: "",
+                    onDismiss = { showEditProfile = false },
+                    onSubmit = { name ->
+                        val current = userProfile
+                        if (current == null) {
+                            showToast("Profile is not ready yet")
+                        } else {
+                            val updated = current.copy(name = name)
+                            repository.saveUserProfile(updated)
+                            userProfile = updated
+                            showEditProfile = false
+                            showToast("Profile updated")
+                        }
                     },
                     onError = { msg -> showToast(msg) }
                 )
