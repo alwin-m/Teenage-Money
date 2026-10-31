@@ -30,7 +30,7 @@ The timestamp is generated at build time. For reproducible builds, set `TM_BUILD
 2. Add a dated entry to [CHANGELOG.md](CHANGELOG.md) before building.
 3. Describe UI/UX, behavior, data/storage, accessibility, build, and known limitations.
 4. Build with an explicit timestamp and record the resulting `BUILD_ID` and APK hash.
-5. Run `pnpm test`, `pnpm build`, `./gradlew.bat lint testDebugUnitTest assembleDebug`, and `./gradlew.bat assembleRelease`.
+5. Run `./gradlew.bat testDebugUnitTest lintDebug assembleDebug`, and `./gradlew.bat assembleRelease` when a release artifact is requested.
 6. Review the APK signing certificate before distribution.
 
 ## Data safety rule

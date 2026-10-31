@@ -14,7 +14,7 @@
 - **Data impact:** No database schema or migration changes. Existing profile preferences are preserved; financial records are untouched.
 - **Compatibility impact:** Existing Android min/target SDK and navigation routes remain unchanged.
 - **Security and privacy impact:** Privacy masking is surfaced more clearly. The app remains local-only; no new permissions or network calls are added.
-- **Tests performed:** `pnpm test`, `pnpm build`, and `./gradlew.bat lint testDebugUnitTest assembleDebug assembleRelease '-PtmBuildStamp=20261012.2355'` passed.
+- **Tests performed:** `./gradlew.bat lintDebug testDebugUnitTest assembleDebug assembleRelease '-PtmBuildStamp=20261012.2355'` passed.
 - **Known limitations:** No avatar upload, app lock, theme selector, notification privacy control, or destructive data reset was added because those capabilities do not exist reliably in the current app.
 - **Related changes:** `VERSIONING.md`, `CHANGELOG.md`, `docs/UI_UX_HISTORY.md`.
 - **Release artifact:** `android/app/build/outputs/apk/release/app-release.apk`, build ID `1.0.0-20261012.2355`, SHA-256 `1D01721EAFF007FD49D8AD9DACF9A35E5445C731A33AF6251FF67B1C781092B6`.

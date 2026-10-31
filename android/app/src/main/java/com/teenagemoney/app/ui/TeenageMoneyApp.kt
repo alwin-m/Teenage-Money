@@ -39,23 +39,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.data.MoneySpace
-import com.teenagemoney.app.data.SavingsGoal
 import com.teenagemoney.app.data.TeenageMoneyRepository
 import com.teenagemoney.app.data.TransactionItem
 import com.teenagemoney.app.data.UserProfile
 import com.teenagemoney.app.BuildConfig
 import com.teenagemoney.app.ui.components.AddExpenseSheet
 import com.teenagemoney.app.ui.components.AddCategorySheet
-import com.teenagemoney.app.ui.components.AddGoalSheet
 import com.teenagemoney.app.ui.components.AddMoneySheet
 import com.teenagemoney.app.ui.components.AddSpaceSheet
 import com.teenagemoney.app.ui.components.AdjustBalanceSheet
 import com.teenagemoney.app.ui.components.EditProfileSheet
-import com.teenagemoney.app.ui.components.GoalContributionSheet
 import com.teenagemoney.app.ui.components.BottomNavBar
 import com.teenagemoney.app.ui.components.ReceiptDialog
 import com.teenagemoney.app.ui.screens.ActivityScreen
-import com.teenagemoney.app.ui.screens.GoalsScreen
 import com.teenagemoney.app.ui.screens.HomeScreen
 import com.teenagemoney.app.ui.screens.ProfileScreen
 import com.teenagemoney.app.ui.screens.OnboardingScreen
@@ -88,16 +84,13 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
     var userProfile by remember { mutableStateOf<UserProfile?>(repository.getUserProfile()) }
     var spaces by remember { mutableStateOf<List<MoneySpace>>(repository.getSpaces()) }
     var transactions by remember { mutableStateOf<List<TransactionItem>>(repository.getTransactions()) }
-    var goals by remember { mutableStateOf<List<SavingsGoal>>(repository.getGoals()) }
 
     var showAddExpense by remember { mutableStateOf(false) }
     var showAddMoney by remember { mutableStateOf(false) }
-    var showAddGoal by remember { mutableStateOf(false) }
     var showAddSpace by remember { mutableStateOf(false) }
     var showAddCategory by remember { mutableStateOf(false) }
     var showEditProfile by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<MoneySpace?>(null) }
-    var contributingGoal by remember { mutableStateOf<SavingsGoal?>(null) }
     var categories by remember { mutableStateOf(repository.getCategories()) }
     var soundEnabled by remember { mutableStateOf(repository.isSoundEnabled()) }
     var amountsMasked by remember { mutableStateOf(repository.isPrivacyMode()) }
@@ -172,21 +165,19 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
         }
 
         AppDestination.MAIN -> {
-            val displayName = userProfile?.name?.ifEmpty { "Alex" } ?: "Alex"
+            val displayName = userProfile?.name?.trim().orEmpty()
             val spendingSpace = spaces.find { it.name == "Spending" }
             val spendingBalance = spendingSpace?.balance ?: 0.0
 
-            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddGoal || showAddSpace || showAddCategory || showEditProfile || editingSpace != null || contributingGoal != null || activeTab != "Home") {
+            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddSpace || showAddCategory || showEditProfile || editingSpace != null || activeTab != "Home") {
                 when {
                     activeReceipt != null -> activeReceipt = null
                     showAddExpense -> showAddExpense = false
                     showAddMoney -> showAddMoney = false
-                    showAddGoal -> showAddGoal = false
                     showAddSpace -> showAddSpace = false
                     showAddCategory -> showAddCategory = false
                     showEditProfile -> showEditProfile = false
                     editingSpace != null -> editingSpace = null
-                    contributingGoal != null -> contributingGoal = null
                     else -> activeTab = "Home"
                 }
             }
@@ -194,13 +185,15 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             Scaffold(
                 containerColor = TMBackground,
                 bottomBar = {
-                    BottomNavBar(
-                        activeTab = activeTab,
-                        onTabSelected = { tab ->
-                            vibrate(10)
-                            activeTab = tab
-                        }
-                    )
+                    if (activeTab == "Home" || activeTab == "Activity") {
+                        BottomNavBar(
+                            activeTab = activeTab,
+                            onTabSelected = { tab ->
+                                vibrate(10)
+                                activeTab = tab
+                            }
+                        )
+                    }
                 }
             ) { innerPadding ->
                 Box(
@@ -214,7 +207,6 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                 userName = displayName,
                                 spaces = spaces,
                                 transactions = transactions,
-                                goals = goals,
                                 onAddMoneyClick = {
                                     vibrate(15)
                                     showAddMoney = true
@@ -227,14 +219,6 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                     vibrate(10)
                                     activeTab = "Activity"
                                 },
-                                onGoalsClick = {
-                                    vibrate(10)
-                                    activeTab = "Goals"
-                                },
-                                onAddGoalClick = {
-                                    vibrate(15)
-                                    showAddGoal = true
-                                },
                                 onSpaceClick = { space -> editingSpace = space },
                                 onAddSpaceClick = { showAddSpace = true },
                                 onTransactionClick = { tx -> activeReceipt = tx },
@@ -242,29 +226,21 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                 onPrivacyToggle = {
                                     amountsMasked = !amountsMasked
                                     repository.savePrivacyMode(amountsMasked)
-                                }
+                                },
+                                onProfileClick = { activeTab = "Profile" }
                             )
                         }
 
                         "Activity" -> {
                             ActivityScreen(
+                                profile = userProfile,
                                 transactions = transactions,
+                                amountsMasked = amountsMasked,
                                 onLogExpenseClick = {
                                     vibrate(15)
                                     showAddExpense = true
                                 },
                                 onTransactionClick = { tx -> activeReceipt = tx }
-                            )
-                        }
-
-                        "Goals" -> {
-                            GoalsScreen(
-                                goals = goals,
-                                onAddGoalClick = {
-                                    vibrate(15)
-                                    showAddGoal = true
-                                },
-                                onContributeClick = { goal -> contributingGoal = goal }
                             )
                         }
 
@@ -293,7 +269,12 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                 },
                                 onExport = {
                                     exportLauncher.launch("teenage-money-export.json")
-                                }
+                                },
+                                onAddMoneyClick = {
+                                    vibrate(15)
+                                    showAddMoney = true
+                                },
+                                onBack = { activeTab = "Home" }
                             )
                         }
                     }
@@ -329,6 +310,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             if (showAddExpense) {
                 AddExpenseSheet(
                     spendingBalance = spendingBalance,
+                    userInitial = displayName.firstOrNull()?.uppercase() ?: "TM",
                     categories = categories,
                     onDismiss = { showAddExpense = false },
                     onAddCategory = { showAddExpense = false; showAddCategory = true },
@@ -380,27 +362,6 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                 )
             }
 
-            if (showAddGoal) {
-                AddGoalSheet(
-                    onDismiss = { showAddGoal = false },
-                    onSubmit = { title, target, saved, tint, emoji ->
-                        try {
-                            repository.addGoal(title, target, saved, tint, emoji)
-                            vibrate(20)
-                            goals = repository.getGoals()
-                            showAddGoal = false
-                            showToast("Goal \"$title\" created!")
-                        } catch (e: Exception) {
-                            showToast(e.message ?: "Could not create goal")
-                        }
-                    },
-                    onError = { msg ->
-                        vibrate(40)
-                        showToast(msg)
-                    }
-                )
-            }
-
             if (showAddSpace) {
                 AddSpaceSheet(
                     onDismiss = { showAddSpace = false },
@@ -425,25 +386,6 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                         spaces = repository.getSpaces()
                         editingSpace = null
                         showToast("${space.name} balance updated")
-                    },
-                    onError = { msg -> showToast(msg) }
-                )
-            }
-
-            contributingGoal?.let { goal ->
-                GoalContributionSheet(
-                    goal = goal,
-                    savingsBalance = spaces.firstOrNull { it.name == "Savings" }?.balance ?: 0.0,
-                    onDismiss = { contributingGoal = null },
-                    onSubmit = { amount ->
-                        try {
-                            repository.contributeToGoal(goal.id, amount)
-                            spaces = repository.getSpaces()
-                            transactions = repository.getTransactions()
-                            goals = repository.getGoals()
-                            contributingGoal = null
-                            showToast("Money moved to ${goal.title}")
-                        } catch (e: Exception) { showToast(e.message ?: "Could not add to goal") }
                     },
                     onError = { msg -> showToast(msg) }
                 )
@@ -488,6 +430,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             activeReceipt?.let { tx ->
                 ReceiptDialog(
                     transaction = tx,
+                    amountsMasked = amountsMasked,
                     onDismiss = { activeReceipt = null }
                 )
             }

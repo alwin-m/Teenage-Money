@@ -95,6 +95,44 @@ class TeenageMoneyRepository(private val context: Context) {
                 .sumOf { it.amount }
         }
 
+        fun currentMonthBoundsMs(): Pair<Long, Long> {
+            val zone = ZoneId.systemDefault()
+            val first = LocalDate.now(zone).withDayOfMonth(1)
+            val next = first.plusMonths(1)
+            return first.atStartOfDay(zone).toInstant().toEpochMilli() to
+                next.atStartOfDay(zone).toInstant().toEpochMilli()
+        }
+
+        fun calcSpentThisMonth(transactions: List<TransactionItem>): Double {
+            val (startMs, endMs) = currentMonthBoundsMs()
+            return transactions
+                .filter { it.type == "expense" && it.epochMs in startMs until endMs }
+                .sumOf { it.amount }
+        }
+
+        fun calcMonthDailyTotals(transactions: List<TransactionItem>): List<Double> {
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            val totals = DoubleArray(today.lengthOfMonth())
+            transactions.filter { it.type == "expense" && it.epochMs > 0L }.forEach { tx ->
+                val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(tx.epochMs), zone).toLocalDate()
+                if (date.year == today.year && date.month == today.month) {
+                    totals[date.dayOfMonth - 1] += tx.amount
+                }
+            }
+            return totals.toList()
+        }
+
+        fun expensesOnMonthDay(transactions: List<TransactionItem>, dayOfMonth: Int): List<TransactionItem> {
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            return transactions.filter { tx ->
+                tx.type == "expense" && tx.epochMs > 0L &&
+                    LocalDateTime.ofInstant(Instant.ofEpochMilli(tx.epochMs), zone).toLocalDate() ==
+                    today.withDayOfMonth(dayOfMonth)
+            }
+        }
+
         /**
          * Builds a 7-element list of daily expense totals for the current week
          * (index 0 = Monday … index 6 = Sunday) — used for the bar chart.
@@ -331,40 +369,4 @@ class TeenageMoneyRepository(private val context: Context) {
     // Goals
     fun getGoals(): List<SavingsGoal> = dbHelper.getGoals()
 
-    fun addGoal(title: String, target: Double, saved: Double, tint: String, emoji: String): SavingsGoal {
-        require(target > 0.0) { "Target amount must be positive" }
-        val goal = SavingsGoal(
-            id    = System.currentTimeMillis(),
-            title = title.trim(),
-            target= target,
-            saved = if (saved > 0) minOf(saved, target) else 0.0,
-            tint  = tint,
-            emoji = emoji.ifEmpty { "★" }
-        )
-        dbHelper.addGoal(goal)
-        return goal
-    }
-
-    fun contributeToGoal(goalId: Long, amount: Double): TransactionItem {
-        require(amount > 0.0) { "Contribution must be greater than zero" }
-        val goal = getGoals().firstOrNull { it.id == goalId } ?: error("Goal not found")
-        require(goal.saved + amount <= goal.target) { "That contribution exceeds the goal target" }
-        val savings = getSpaces().firstOrNull { it.name == "Savings" } ?: error("Savings space not found")
-        require(savings.balance >= amount) { "Not enough in Savings. You have ${formatMoney(savings.balance)}." }
-        val newSavings = savings.balance - amount
-        val epochMs = System.currentTimeMillis()
-        updateSpaceBalance("Savings", newSavings)
-        dbHelper.updateGoalSaved(goalId, goal.saved + amount)
-        val tx = TransactionItem(
-            id = epochMs, type = "transfer", title = "Added to goal — ${goal.title}", category = "Goal", source = "Savings",
-            amount = amount, day = "Today", icon = goal.emoji, color = "mint",
-            timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.ENGLISH)),
-            remaining = newSavings, epochMs = epochMs
-        )
-        dbHelper.addTransaction(tx)
-        return tx
-    }
-
-    fun deleteGoal(id: Long)        = dbHelper.deleteGoal(id)
-    fun deleteTransaction(id: Long) = dbHelper.deleteTransaction(id)
 }

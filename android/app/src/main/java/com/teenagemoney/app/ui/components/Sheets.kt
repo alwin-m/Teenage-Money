@@ -17,13 +17,16 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,7 +45,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.data.MoneySpace
-import com.teenagemoney.app.data.SavingsGoal
 import com.teenagemoney.app.data.TeenageMoneyRepository
 import com.teenagemoney.app.ui.theme.TMCardDark
 import com.teenagemoney.app.ui.theme.TMCoral
@@ -56,126 +58,137 @@ import com.teenagemoney.app.ui.theme.TMPeachBg
 import com.teenagemoney.app.ui.theme.TMPeachBorder
 import com.teenagemoney.app.ui.theme.TMPeachText
 import com.teenagemoney.app.ui.theme.TMWhite
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun AddExpenseSheet(
     spendingBalance: Double,
+    userInitial: String = "TM",
     categories: List<String>,
     onDismiss: () -> Unit,
     onAddCategory: () -> Unit,
     onSubmit: (amount: Double, description: String, category: String) -> Unit,
     onError: (String) -> Unit
 ) {
-    var amountText by remember { mutableStateOf("") }
-    var descText by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Food") }
+    var amountText by remember { mutableStateOf("0") }
+    var description by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: "Food") }
+    val visibleCategories = (categories + "+ Add category").distinct()
+    val now = remember { LocalDateTime.now() }
+    val dateText = now.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH))
+    val timeText = now.format(DateTimeFormatter.ofPattern("h:mm", Locale.ENGLISH))
+    val categoryIcon = when (selectedCategory.lowercase(Locale.ENGLISH)) {
+        "coffee" -> "☕"
+        "food" -> "🍽"
+        "travel", "transport" -> "✈"
+        "clothes", "shopping" -> "◈"
+        else -> "✦"
+    }
 
-    val visibleCategories = categories + "+ Add category"
+    fun appendKey(value: String) {
+        amountText = when {
+            value == "del" && amountText.length > 1 -> amountText.dropLast(1)
+            value == "del" -> "0"
+            value == "." && amountText.contains(".") -> amountText
+            amountText == "0" && value != "." -> value
+            amountText.length >= 8 -> amountText
+            else -> amountText + value
+        }
+    }
 
     BottomSheetWrapper(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            SheetHeader(
-                eyebrow = "QUICK LOG",
-                title = "What did you spend?",
-                onClose = onDismiss
-            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onDismiss) { Text("‹", fontSize = 30.sp, color = TMInk) }
+                Text("Log expense", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TMInk)
+                Spacer(modifier = Modifier.weight(1f))
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(TMCoral), contentAlignment = Alignment.Center) {
+                    Text(userInitial, color = TMWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("It's $dateText", fontSize = 22.sp, fontWeight = FontWeight.Medium, color = TMInk)
+            Text("you're about to make a purchase", fontSize = 22.sp, fontWeight = FontWeight.Medium, color = TMInk)
+            Text("and the time is $timeText", fontSize = 22.sp, fontWeight = FontWeight.Medium, color = TMInk)
 
-            // Amount input
-            Text(
-                text = "Amount",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TMMuted,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            SheetInputField(
-                value = amountText,
-                onValueChange = { amountText = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                placeholder = "₹ 0",
-                keyboardType = KeyboardType.Decimal
-            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Text("Money left ${TeenageMoneyRepository.displayMoney(spendingBalance, false)}", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = TMInk)
+            Box(modifier = Modifier.width(132.dp).height(2.dp).background(TMInk))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(categoryIcon, fontSize = 64.sp)
+            Text(selectedCategory, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TMInk)
 
-            // Description input
-            Text(
-                text = "What was it?",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TMMuted,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            SheetInputField(
-                value = descText,
-                onValueChange = { descText = it },
-                placeholder = "e.g. Coffee, Subway, Book"
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Category chips
-            Text(
-                text = "Category",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TMMuted,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            visibleCategories.chunked(3).forEachIndexed { rowIndex, row ->
-                if (rowIndex > 0) Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    row.forEach { cat ->
-                    CategoryChip(
-                        name = cat,
-                        isSelected = selectedCategory == cat && cat != "+ Add category",
-                        onClick = { if (cat == "+ Add category") onAddCategory() else selectedCategory = cat },
-                        modifier = Modifier.weight(1f)
-                    )
+            Spacer(modifier = Modifier.height(10.dp))
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                visibleCategories.forEach { category ->
+                    val isAdd = category == "+ Add category"
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { if (isAdd) onAddCategory() else selectedCategory = category }
+                            .padding(vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(if (!isAdd && category == selectedCategory) TMInk else TMLine))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(category, fontSize = if (!isAdd && category == selectedCategory) 23.sp else 20.sp, fontWeight = if (!isAdd && category == selectedCategory) FontWeight.Bold else FontWeight.Normal, color = if (!isAdd && category == selectedCategory) TMInk else TMMuted)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            Text("Tap a category, then enter the amount", fontSize = 12.sp, color = TMMuted)
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text("What was it for?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted)
+            Spacer(modifier = Modifier.height(6.dp))
+            SheetInputField(
+                value = description,
+                onValueChange = { if (it.length <= 60) description = it },
+                placeholder = "e.g. lunch with friends"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("₹$amountText", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = TMInk)
+            listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf(".", "0", "del")).forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { key ->
+                        Button(
+                            onClick = { appendKey(key) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEFEDEB), contentColor = TMInk),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.weight(1f).height(45.dp)
+                        ) { Text(if (key == "del") "⌫" else key, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+                    }
+                }
+                Spacer(modifier = Modifier.height(5.dp))
+            }
 
             Button(
                 onClick = {
                     val amount = amountText.toDoubleOrNull()
-                    if (amount == null || amount <= 0) {
-                        onError("Please enter a valid amount")
-                        return@Button
+                    when {
+                        amount == null || amount <= 0 -> onError("Please enter a valid amount")
+                        amount > spendingBalance -> onError("Not enough in Spending. You have ₹${spendingBalance.toInt()}.")
+                        description.trim().length < 2 -> onError("Add a short description")
+                        else -> onSubmit(amount, description.trim(), selectedCategory)
                     }
-                    if (descText.trim().isEmpty()) {
-                        onError("Please enter what you spent on")
-                        return@Button
-                    }
-                    if (amount > spendingBalance) {
-                        onError("Not enough in Spending. You have ₹${spendingBalance.toInt()}.")
-                        return@Button
-                    }
-                    onSubmit(amount, descText.trim(), selectedCategory)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TMCoral),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(
-                    text = "Add expense →",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TMWhite
-                )
-            }
+                colors = ButtonDefaults.buttonColors(containerColor = TMInk, contentColor = TMWhite),
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) { Text("Done", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }
@@ -317,123 +330,6 @@ fun AddMoneySheet(
                     fontWeight = FontWeight.Bold,
                     color = TMWhite
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun AddGoalSheet(
-    onDismiss: () -> Unit,
-    onSubmit: (title: String, target: Double, saved: Double, tint: String, emoji: String) -> Unit,
-    onError: (String) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var targetText by remember { mutableStateOf("") }
-    var savedText by remember { mutableStateOf("") }
-    var selectedTint by remember { mutableStateOf("peach") }
-    var selectedEmoji by remember { mutableStateOf("♫") }
-
-    val emojis = listOf("♫", "◒", "★", "💻", "👟")
-
-    BottomSheetWrapper(onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            SheetHeader(
-                eyebrow = "NEW SAVINGS GOAL",
-                title = "What are you saving for?",
-                onClose = onDismiss
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(text = "Goal title", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted, modifier = Modifier.padding(bottom = 6.dp))
-            SheetInputField(value = title, onValueChange = { title = it }, placeholder = "e.g. Mechanical Keyboard")
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(text = "Target amount", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted, modifier = Modifier.padding(bottom = 6.dp))
-            SheetInputField(value = targetText, onValueChange = { targetText = it.filter { ch -> ch.isDigit() || ch == '.' } }, placeholder = "₹ 5000", keyboardType = KeyboardType.Decimal)
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(text = "Already saved (optional)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted, modifier = Modifier.padding(bottom = 6.dp))
-            SheetInputField(value = savedText, onValueChange = { savedText = it.filter { ch -> ch.isDigit() || ch == '.' } }, placeholder = "₹ 0", keyboardType = KeyboardType.Decimal)
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(text = "Icon Symbol", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted, modifier = Modifier.padding(bottom = 6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                emojis.forEach { e ->
-                    val isSelected = selectedEmoji == e
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) TMPeachBg else TMWhite)
-                            .border(1.dp, if (isSelected) TMCoral else TMLine, CircleShape)
-                            .clickable { selectedEmoji = e },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = e, fontSize = 18.sp)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    val target = targetText.toDoubleOrNull()
-                    if (title.trim().isEmpty() || target == null || target <= 0) {
-                        onError("Enter a goal title and target amount")
-                        return@Button
-                    }
-                    val saved = savedText.toDoubleOrNull() ?: 0.0
-                    onSubmit(title.trim(), target, saved, selectedTint, selectedEmoji)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = TMCoral),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(
-                    text = "Create goal →",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TMWhite
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun GoalContributionSheet(
-    goal: SavingsGoal,
-    savingsBalance: Double,
-    onDismiss: () -> Unit,
-    onSubmit: (Double) -> Unit,
-    onError: (String) -> Unit
-) {
-    var amountText by remember { mutableStateOf("") }
-    BottomSheetWrapper(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            SheetHeader(eyebrow = "REAL SAVING", title = "Add to ${goal.title}", onClose = onDismiss)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Available in Savings: ${TeenageMoneyRepository.formatMoney(savingsBalance)}", fontSize = 13.sp, color = TMMuted)
-            Spacer(modifier = Modifier.height(16.dp))
-            SheetInputField(value = amountText, onValueChange = { amountText = it.filter { ch -> ch.isDigit() || ch == '.' } }, placeholder = "₹ 0", keyboardType = KeyboardType.Decimal)
-            Spacer(modifier = Modifier.height(20.dp))
-            Button(onClick = {
-                val value = amountText.toDoubleOrNull()
-                if (value == null || value <= 0) onError("Enter a valid contribution") else onSubmit(value)
-            }, colors = ButtonDefaults.buttonColors(containerColor = TMCoral), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text("Move to goal →", color = TMWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
