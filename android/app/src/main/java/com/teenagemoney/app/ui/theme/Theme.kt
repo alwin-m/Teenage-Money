@@ -7,12 +7,18 @@ import androidx.compose.runtime.Composable
 private val TMColorScheme = lightColorScheme(
     primary = TMCoral,
     onPrimary = TMWhite,
+    primaryContainer = TMCoralLight,
+    onPrimaryContainer = TMCoral,
+    secondary = TMPurple,
+    onSecondary = TMWhite,
     background = TMBackground,
     onBackground = TMInk,
-    surface = TMWhite,
+    surface = TMSurface,
     onSurface = TMInk,
-    surfaceVariant = TMCardDarkSurface,
-    onSurfaceVariant = TMWhite
+    surfaceVariant = TMLine,
+    onSurfaceVariant = TMMuted,
+    outline = TMBorder,
+    outlineVariant = TMLine
 )
 
 @Composable

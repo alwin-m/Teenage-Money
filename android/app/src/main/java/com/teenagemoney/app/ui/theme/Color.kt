@@ -2,44 +2,65 @@ package com.teenagemoney.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val TMBackground = Color(0xFFE5DDD0)
-val TMCardDark = Color(0xFF23222B)
-val TMCardDarkSurface = Color(0xFF2C2B35)
-val TMInk = Color(0xFF1E1B18)
-val TMMuted = Color(0xFF6B5844)
-val TMLightMuted = Color(0xFF806E5A)
-val TMOnDarkMuted = Color(0xFFD8D7DC)
-val TMLine = Color(0xFFD4C9BC)
-val TMWhite = Color(0xFFFFFFFF)
+// ── Canvas & Surface ────────────────────────────────────────────────────────
+val TMBackground      = Color(0xFFF7F7F8)   // Near-white canvas
+val TMSurface         = Color(0xFFFFFFFF)   // Card surface
+val TMSurfaceElevated = Color(0xFFFFFFFF)   // Elevated surface (sheets, dialogs)
 
-// Accent Colors
-val TMCoral = Color(0xFFC8400F)
-val TMCoralDark = Color(0xFFA83212)
-val TMPurple = Color(0xFF8778DF)
-val TMYellowSun = Color(0xFFF9C852)
+// ── Ink & Text ──────────────────────────────────────────────────────────────
+val TMInk             = Color(0xFF111111)   // Primary text — near-black
+val TMMuted           = Color(0xFF8A8A8E)   // Secondary text — neutral gray
+val TMLightMuted      = Color(0xFFAAAAAE)   // Tertiary text
 
-// Tints
-val TMPeachBg = Color(0xFFFCEEE6)
-val TMPeachBorder = Color(0xFFF7D5C5)
-val TMPeachText = Color(0xFFD65A3A)
+// ── Lines & Borders ─────────────────────────────────────────────────────────
+val TMLine            = Color(0xFFEEEEF0)   // Subtle dividers
+val TMBorder          = Color(0xFFE5E5E8)   // Card borders (only when needed)
 
-val TMMintBg = Color(0xFFE5F5EE)
-val TMMintBorder = Color(0xFFC7EBD9)
-val TMMintText = Color(0xFF2E9A66)
+// ── Brand Accent ────────────────────────────────────────────────────────────
+val TMCoral           = Color(0xFFE8441E)   // Primary action — warm red-orange
+val TMCoralDark       = Color(0xFFC23515)   // Pressed state
+val TMCoralLight      = Color(0xFFFEF0EC)   // Coral tint background
 
-val TMLavenderBg = Color(0xFFECE8FA)
-val TMLavenderBorder = Color(0xFFD4CEF4)
-val TMLavenderText = Color(0xFF7462D4)
+// ── Secondary Accent ────────────────────────────────────────────────────────
+val TMPurple          = Color(0xFF7B6CF0)   // Charts, secondary highlights
+val TMYellowSun       = Color(0xFFF5C342)   // Warm accent
 
-// Icon circle backgrounds & foregrounds
-val TMIconsFoodBg = Color(0xFFFFF0E6)
-val TMIconsFoodFg = Color(0xFFE95E3F)
+// ── Money Space Tints ───────────────────────────────────────────────────────
+// Spending (Coral family)
+val TMPeachBg         = Color(0xFFFEF0EC)
+val TMPeachBorder     = Color(0xFFFDD8CC)
+val TMPeachText       = Color(0xFFE8441E)
 
-val TMIconsTransportBg = Color(0xFFEAF1FC)
-val TMIconsTransportFg = Color(0xFF3B82F6)
+// Savings (Mint family)
+val TMMintBg          = Color(0xFFECF9F2)
+val TMMintBorder      = Color(0xFFCBEDD9)
+val TMMintText        = Color(0xFF1B9E5A)
 
-val TMIconsEducationBg = Color(0xFFE5F5EE)
-val TMIconsEducationFg = Color(0xFF2E9A66)
+// Emergency (Lavender family)
+val TMLavenderBg      = Color(0xFFF0EDFC)
+val TMLavenderBorder  = Color(0xFFDAD4F7)
+val TMLavenderText    = Color(0xFF7B6CF0)
 
-val TMIconsShoppingBg = Color(0xFFF2ECFC)
-val TMIconsShoppingFg = Color(0xFF8B5CF6)
+// ── Category Icon Backgrounds ───────────────────────────────────────────────
+val TMIconsFoodBg       = Color(0xFFFFF0E6)
+val TMIconsFoodFg       = Color(0xFFE95E3F)
+
+val TMIconsTransportBg  = Color(0xFFEAF1FC)
+val TMIconsTransportFg  = Color(0xFF3B82F6)
+
+val TMIconsEducationBg  = Color(0xFFECF9F2)
+val TMIconsEducationFg  = Color(0xFF1B9E5A)
+
+val TMIconsShoppingBg   = Color(0xFFF0EDFC)
+val TMIconsShoppingFg   = Color(0xFF7B6CF0)
+
+// ── Status Colors ───────────────────────────────────────────────────────────
+val TMSuccess         = Color(0xFF1B9E5A)
+val TMWarning         = Color(0xFFF5C342)
+val TMError           = Color(0xFFE8441E)
+
+// ── Dark Surface (legacy compat) ────────────────────────────────────────────
+val TMCardDark        = Color(0xFF1A1A1E)
+val TMCardDarkSurface = Color(0xFF232328)
+val TMOnDarkMuted     = Color(0xFFD8D7DC)
+val TMWhite           = Color(0xFFFFFFFF)

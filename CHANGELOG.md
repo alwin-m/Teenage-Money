@@ -2,6 +2,14 @@
 
 This is the cumulative product ledger. Entries describe changes that are present in the repository and are intended to make an APK identifiable without relying on memory or chat history.
 
+## Unreleased — 2026-11-01 UI/UX Modernization
+
+### Changed
+
+- Modernized fintech UI/UX with elevated card-based surfaces, subtle outlines, and refined dark/light color palette.
+- Updated typography tokens, spacing hierarchy, and consistent corner radius scaling across components.
+- Polished dashboard components, quick balance cards, activity list styling, and bottom navigation bar.
+
 ## Unreleased — proposed 1.1.0 — 2026-10-26 cleanup
 
 ### Removed

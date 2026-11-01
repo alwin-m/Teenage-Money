@@ -1,5 +1,7 @@
 package com.teenagemoney.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +26,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +40,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.selected as semanticsSelected
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,34 +47,17 @@ import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.data.MoneySpace
 import com.teenagemoney.app.data.TeenageMoneyRepository
 import com.teenagemoney.app.data.TransactionItem
-import com.teenagemoney.app.ui.theme.TMCoral
-import com.teenagemoney.app.ui.theme.TMDimens
-import com.teenagemoney.app.ui.theme.TMIconsEducationBg
-import com.teenagemoney.app.ui.theme.TMIconsEducationFg
-import com.teenagemoney.app.ui.theme.TMIconsFoodBg
-import com.teenagemoney.app.ui.theme.TMIconsFoodFg
-import com.teenagemoney.app.ui.theme.TMIconsShoppingBg
-import com.teenagemoney.app.ui.theme.TMIconsShoppingFg
-import com.teenagemoney.app.ui.theme.TMIconsTransportBg
-import com.teenagemoney.app.ui.theme.TMIconsTransportFg
-import com.teenagemoney.app.ui.theme.TMInk
-import com.teenagemoney.app.ui.theme.TMLavenderBg
-import com.teenagemoney.app.ui.theme.TMLavenderBorder
-import com.teenagemoney.app.ui.theme.TMLine
-import com.teenagemoney.app.ui.theme.TMMintBg
-import com.teenagemoney.app.ui.theme.TMMintBorder
-import com.teenagemoney.app.ui.theme.TMMuted
-import com.teenagemoney.app.ui.theme.TMPeachBg
-import com.teenagemoney.app.ui.theme.TMPeachBorder
-import com.teenagemoney.app.ui.theme.TMPeachText
-import com.teenagemoney.app.ui.theme.TMPurple
-import com.teenagemoney.app.ui.theme.TMWhite
+import com.teenagemoney.app.ui.theme.*
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOP HEADER — Clean greeting with avatar
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun TopHeader(
@@ -82,32 +67,23 @@ fun TopHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = TMDimens.Space12),
+            .padding(horizontal = TMDimens.Space20, vertical = TMDimens.Space14),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "teenage",
-                fontSize = 20.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
+                text = "Hello, ${userName.ifBlank { "there" }}",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = TMInk,
-                letterSpacing = (-0.6).sp
-            )
-            Text(
-                text = "money",
-                fontSize = 20.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = TMInk,
-                letterSpacing = (-0.6).sp
+                letterSpacing = (-0.2).sp
             )
         }
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(TMDimens.AvatarMedium)
                 .clip(CircleShape)
-                .background(TMCoral)
+                .background(TMInk)
                 .clickable(onClick = onProfileClick)
                 .semantics {
                     contentDescription = "Open Profile"
@@ -117,13 +93,17 @@ fun TopHeader(
         ) {
             Text(
                 text = userName.firstOrNull()?.uppercase() ?: "TM",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
                 color = TMWhite
             )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO BALANCE CARD — Prominent balance with hide/show toggle
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun SpendingHeroCard(
@@ -135,98 +115,103 @@ fun SpendingHeroCard(
     onPrivacyToggle: () -> Unit
 ) {
     val amountText = TeenageMoneyRepository.displayMoney(spendingBalance, amountsMasked)
-    val scopeLine = if (otherSpaceCount <= 0) {
-        "Available in your Spending space"
-    } else {
-        val other = if (otherSpaceCount == 1) "1 other space" else "$otherSpaceCount other spaces"
-        "Available in Spending · $other not included"
-    }
-    val statusLine = when {
-        spendingBalance <= 0.0 && expenseCount == 0 -> "Add money to get started"
-        expenseCount == 0 -> "No expenses logged yet"
-        expenseCount == 1 -> "1 expense logged"
-        else -> "$expenseCount expenses logged"
-    }
-    val privacyLabel = if (amountsMasked) "Show amounts" else "Hide amounts"
+    val privacyLabel = if (amountsMasked) "Show Balance" else "Hide Balance"
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 190.dp)
-            .shadow(3.dp, RoundedCornerShape(TMDimens.Radius24))
+            .shadow(TMDimens.CardElevation, RoundedCornerShape(TMDimens.Radius24))
             .clip(RoundedCornerShape(TMDimens.Radius24))
             .background(TMWhite)
-            .border(1.dp, TMLine, RoundedCornerShape(TMDimens.Radius24))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(TMDimens.Space16),
-            verticalArrangement = Arrangement.spacedBy(TMDimens.Space8)
+                .padding(TMDimens.Space24)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Eyebrow label
+            Text(
+                text = "Total Balance",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = TMMuted,
+                letterSpacing = 0.2.sp
+            )
+
+            Spacer(modifier = Modifier.height(TMDimens.Space4))
+
+            // Hero amount
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "AVAILABLE TO SPEND",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.1.sp,
-                    color = TMMuted
+                    text = amountText,
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Black,
+                    color = TMInk,
+                    letterSpacing = (-1.5).sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-                Spacer(modifier = Modifier.width(TMDimens.Space8))
+
+                Spacer(modifier = Modifier.width(TMDimens.Space12))
+
+                // Hide/Show pill
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(TMCoral)
+                        .clip(RoundedCornerShape(TMDimens.Radius20))
+                        .background(TMLine)
+                        .clickable(onClick = onPrivacyToggle)
+                        .semantics { contentDescription = privacyLabel }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (amountsMasked) "👁" else "👁‍🗨",
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = privacyLabel,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TMInk
+                        )
+                    }
                 }
             }
 
-            Text(
-                text = amountText,
-                fontSize = 40.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = TMInk,
-                letterSpacing = (-1.5).sp,
-                maxLines = 2,
-                overflow = TextOverflow.Clip
-            )
-            Text(
-                text = "$scopeLine · $statusLine",
-                fontSize = 13.sp,
-                color = TMMuted,
-                fontWeight = FontWeight.Medium
-            )
+            Spacer(modifier = Modifier.height(TMDimens.Space20))
+
+            // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TMDimens.Space8)
+                horizontalArrangement = Arrangement.spacedBy(TMDimens.Space12)
             ) {
-                TextButton(
-                    onClick = onPrivacyToggle,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = TMDimens.MinTouch)
-                        .semantics { contentDescription = privacyLabel }
-                ) {
-                    Text(
-                        text = if (amountsMasked) "Show amount" else "Hide amount",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TMInk
-                    )
-                }
                 Button(
                     onClick = onAddClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = TMInk, contentColor = TMWhite),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = TMInk,
+                        contentColor = TMWhite
+                    ),
                     shape = RoundedCornerShape(TMDimens.Radius16),
-                    modifier = Modifier.heightIn(min = TMDimens.MinTouch)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(TMDimens.ButtonHeight)
                 ) {
-                    Text("Add money", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Add money", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOG EXPENSE BUTTON — Primary action
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun LogExpenseButton(onClick: () -> Unit) {
@@ -239,8 +224,8 @@ fun LogExpenseButton(onClick: () -> Unit) {
         ),
         shape = RoundedCornerShape(TMDimens.Radius16),
         modifier = Modifier
-            .width(178.dp)
-            .heightIn(min = TMDimens.MinTouch)
+            .fillMaxWidth()
+            .height(TMDimens.ButtonHeight)
             .semantics { contentDescription = "Log expense" }
     ) {
         Text(
@@ -250,6 +235,10 @@ fun LogExpenseButton(onClick: () -> Unit) {
         )
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEEK RHYTHM CARD — Weekly spending visualization
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun WeekRhythmCard(
@@ -280,30 +269,32 @@ fun WeekRhythmCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(TMDimens.CardElevation, RoundedCornerShape(TMDimens.Radius24))
             .clip(RoundedCornerShape(TMDimens.Radius24))
             .background(TMWhite)
-            .border(1.dp, TMLine, RoundedCornerShape(TMDimens.Radius24))
-            .padding(TMDimens.Space16)
+            .padding(TMDimens.Space20)
     ) {
         Column {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = "YOUR WEEK",
+                        text = "This Week",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.1.sp,
+                        fontWeight = FontWeight.Medium,
                         color = TMMuted
                     )
+                    Spacer(modifier = Modifier.height(TMDimens.Space2))
                     Text(
                         text = TeenageMoneyRepository.displayMoney(spentThisWeek, amountsMasked) + " spent",
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TMInk
+                        fontWeight = FontWeight.Bold,
+                        color = TMInk,
+                        letterSpacing = (-0.3).sp
                     )
                 }
                 TextButton(
@@ -312,15 +303,16 @@ fun WeekRhythmCard(
                 ) {
                     Text(
                         text = "View all",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TMInk
+                        color = TMMuted
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(TMDimens.Space16))
+            Spacer(modifier = Modifier.height(TMDimens.Space20))
 
+            // Day circles
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TMDimens.Space4)
@@ -336,17 +328,28 @@ fun WeekRhythmCard(
                         "no spending"
                     }
                     val selectedAnnounce = if (isSelected) "selected" else "not selected"
+
+                    val bgColor by animateColorAsState(
+                        targetValue = if (isSelected) TMInk else TMLine,
+                        animationSpec = tween(200),
+                        label = "dayBg"
+                    )
+                    val textColor by animateColorAsState(
+                        targetValue = if (isSelected) TMWhite else TMInk,
+                        animationSpec = tween(200),
+                        label = "dayText"
+                    )
+                    val labelColor by animateColorAsState(
+                        targetValue = if (isSelected) TMWhite.copy(alpha = 0.7f) else TMMuted,
+                        animationSpec = tween(200),
+                        label = "dayLabel"
+                    )
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = TMDimens.MinTouch)
-                            .clip(CircleShape)
-                            .border(
-                                width = if (isSelected) 1.5.dp else 0.dp,
-                                color = if (isSelected) TMInk else Color.Transparent,
-                                shape = CircleShape
-                            )
+                            .clip(RoundedCornerShape(TMDimens.Radius16))
                             .clickable { onDayClick(i) }
                             .semantics {
                                 contentDescription = "$weekdayName $num, $selectedAnnounce, $spentAnnounce"
@@ -355,52 +358,56 @@ fun WeekRhythmCard(
                             }
                             .padding(vertical = TMDimens.Space4)
                     ) {
+                        Text(
+                            text = label.take(2),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = labelColor
+                        )
+                        Spacer(modifier = Modifier.height(TMDimens.Space4))
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF1EFEB))
+                                .background(bgColor),
+                            contentAlignment = Alignment.Center
                         ) {
-                            if (hasSpending) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight((dayAmount / maxDaily).toFloat().coerceIn(0.08f, 1f))
-                                        .align(Alignment.BottomCenter)
-                                        .background(if (isSelected) TMCoral else Color(0xFFF0B0A0))
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.align(Alignment.Center),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = label.take(2),
-                                    fontSize = 10.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) TMInk else TMMuted
-                                )
-                                Text(
-                                    text = num,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = TMInk
-                                )
-                            }
+                            Text(
+                                text = num,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                        }
+                        // Spending indicator dot
+                        Spacer(modifier = Modifier.height(TMDimens.Space4))
+                        if (hasSpending) {
+                            Box(
+                                modifier = Modifier
+                                    .size(5.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) TMCoral else TMMuted.copy(alpha = 0.3f))
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(5.dp))
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(TMDimens.Space16))
+            Spacer(modifier = Modifier.height(TMDimens.Space20))
+
+            // Divider
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
+                    .height(TMDimens.Divider)
                     .background(TMLine)
             )
+
             Spacer(modifier = Modifier.height(TMDimens.Space16))
 
+            // Selected day detail
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -408,7 +415,8 @@ fun WeekRhythmCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (selectedMeta == null) "Selected day" else "${selectedMeta.third.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${selectedMeta.second}",
+                        text = if (selectedMeta == null) "Selected day"
+                        else "${selectedMeta.third.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)} ${selectedMeta.second}",
                         fontSize = 13.sp,
                         color = TMMuted,
                         fontWeight = FontWeight.Medium
@@ -417,73 +425,81 @@ fun WeekRhythmCard(
                     Text(
                         text = TeenageMoneyRepository.displayMoney(selectedTotal, amountsMasked),
                         fontSize = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TMInk
+                        fontWeight = FontWeight.Bold,
+                        color = TMInk,
+                        letterSpacing = (-0.8).sp
                     )
-                    if (selectedMeta != null) {
-                        Spacer(modifier = Modifier.height(TMDimens.Space4))
-                        Text(
-                            text = "${selectedDayTransactions.size} transaction${if (selectedDayTransactions.size == 1) "" else "s"}",
-                            fontSize = 13.sp,
-                            color = TMMuted,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
 
+                // Mini bar chart
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(TMDimens.Space4),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier.height(34.dp)
+                    modifier = Modifier.height(36.dp)
                 ) {
                     dailyTotals.forEachIndexed { i, total ->
-                        val frac = (total / maxDaily).toFloat().coerceIn(0.03f, 1.0f)
-                        val barH = (frac * 34).dp
-                        val isSelected = i == selectedDayIndex
+                        val frac = (total / maxDaily).toFloat().coerceIn(0.06f, 1.0f)
+                        val barH = (frac * 36).dp
+                        val isBarSelected = i == selectedDayIndex
                         Box(
                             modifier = Modifier
-                                .width(6.dp)
+                                .width(5.dp)
                                 .height(barH)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(
                                     when {
-                                        isSelected -> TMPurple
-                                        total > 0.0 -> Color(0xFFD4CCF2)
-                                        else -> Color(0xFFEEECF5)
+                                        isBarSelected -> TMInk
+                                        total > 0.0 -> TMLine
+                                        else -> TMLine.copy(alpha = 0.4f)
                                     }
-                                )
-                                .then(
-                                    if (isSelected) Modifier.border(1.dp, TMInk, RoundedCornerShape(3.dp))
-                                    else Modifier
                                 )
                         )
                     }
                 }
             }
 
+            // Transaction list for selected day
             Spacer(modifier = Modifier.height(TMDimens.Space12))
             if (selectedDayTransactions.isEmpty()) {
                 Text(
-                    text = "No spending recorded on this day.",
+                    text = "No spending on this day.",
                     fontSize = 13.sp,
                     color = TMMuted
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space8)) {
+                Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space4)) {
                     selectedDayTransactions.take(4).forEach { tx ->
-                        Text(
-                            text = "${tx.title}  ·  ${TeenageMoneyRepository.displayMoney(tx.amount, amountsMasked)}",
-                            fontSize = 13.sp,
-                            color = TMInk,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = tx.title,
+                                fontSize = 13.sp,
+                                color = TMInk,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(TMDimens.Space8))
+                            Text(
+                                text = TeenageMoneyRepository.displayMoney(tx.amount, amountsMasked),
+                                fontSize = 13.sp,
+                                color = TMInk,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERIOD SWITCHER — Week / Month toggle
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun PeriodSwitcher(
@@ -492,9 +508,9 @@ fun PeriodSwitcher(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(32.dp))
-            .background(Color(0xFFEFEDEB))
-            .padding(4.dp),
+            .clip(RoundedCornerShape(TMDimens.Radius12))
+            .background(TMLine)
+            .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         listOf("Week", "Month").forEach { period ->
@@ -502,7 +518,7 @@ fun PeriodSwitcher(
             Text(
                 text = period,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(TMDimens.Radius8))
                     .background(if (active) TMWhite else Color.Transparent)
                     .clickable { onSelected(period) }
                     .semantics {
@@ -510,14 +526,18 @@ fun PeriodSwitcher(
                         semanticsSelected = active
                         role = Role.Tab
                     }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                fontSize = 12.sp,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                fontSize = 13.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (active) TMInk else TMMuted
             )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTH CALENDAR CARD — Monthly spending overview
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun MonthCalendarCard(
@@ -536,70 +556,64 @@ fun MonthCalendarCard(
     }
     val maxDaily = dailyTotals.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     val selectedTotal = selectedDayTransactions.sumOf { it.amount }
-    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)).uppercase(Locale.ENGLISH)
+    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM", Locale.ENGLISH))
     val selectedLabel = selectedDay.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))
 
     Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space12)) {
+        // Month header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = monthLabel,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-0.3).sp,
-                    color = TMInk
-                )
-                Spacer(modifier = Modifier.width(TMDimens.Space8))
-                Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(TMCoral))
-            }
             Text(
-                text = today.format(DateTimeFormatter.ofPattern("EEE · d", Locale.ENGLISH)).uppercase(Locale.ENGLISH),
-                fontSize = 11.sp,
+                text = monthLabel,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
+                letterSpacing = (-0.3).sp,
+                color = TMInk
+            )
+            Text(
+                text = today.format(DateTimeFormatter.ofPattern("EEE d", Locale.ENGLISH)),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = TMMuted,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFF1EFED))
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
+                    .clip(RoundedCornerShape(TMDimens.Radius20))
+                    .background(TMLine)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             )
         }
 
+        // Selected day summary pill
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
+                .shadow(TMDimens.CardElevation, RoundedCornerShape(TMDimens.Radius16))
+                .clip(RoundedCornerShape(TMDimens.Radius16))
                 .background(TMWhite)
-                .shadow(2.dp, RoundedCornerShape(24.dp))
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(TMCoral))
-                Spacer(modifier = Modifier.width(TMDimens.Space8))
-                Text(selectedLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TMInk)
-            }
+            Text(selectedLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TMInk)
             Text(
-                text = if (selectedDay.isAfter(today)) "Upcoming day" else "${TeenageMoneyRepository.displayMoney(selectedTotal, amountsMasked)} spent",
+                text = if (selectedDay.isAfter(today)) "Upcoming" else "${TeenageMoneyRepository.displayMoney(selectedTotal, amountsMasked)} spent",
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = if (selectedDay.isAfter(today)) TMMuted else TMCoral
             )
         }
 
+        // Calendar grid
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(TMDimens.Radius16))
-                .background(Color(0xFFFDFCFB))
+                .background(Color(0xFFFCFCFC))
                 .padding(12.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     listOf("M", "T", "W", "T", "F", "S", "S").forEachIndexed { index, label ->
                         Text(
@@ -620,32 +634,27 @@ fun MonthCalendarCard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (date == null) {
-                                    Spacer(modifier = Modifier.size(40.dp))
+                                    Spacer(modifier = Modifier.size(38.dp))
                                 } else {
                                     val amount = dailyTotals.getOrElse(date.dayOfMonth - 1) { 0.0 }
                                     val isFuture = date.isAfter(today)
                                     val isSelected = date == selectedDay
-                                    val fill = (amount / maxDaily).toFloat().coerceIn(0.05f, 1f)
+
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(38.dp)
                                             .clip(CircleShape)
                                             .background(
                                                 when {
-                                                    isFuture -> Color(0xFFF3F1EF)
-                                                    amount > 0.0 -> Color(0xFFF2EFEC)
-                                                    else -> Color(0xFFEDEBE8)
+                                                    isSelected -> TMInk
+                                                    !isFuture && amount > 0.0 -> TMCoralLight
+                                                    else -> Color.Transparent
                                                 }
-                                            )
-                                            .border(
-                                                width = if (isSelected) 2.dp else 0.dp,
-                                                color = if (isSelected) TMInk else Color.Transparent,
-                                                shape = CircleShape
                                             )
                                             .clickable { onDayClick(date) }
                                             .semantics {
                                                 contentDescription = if (isFuture) {
-                                                    "$date, upcoming day"
+                                                    "$date, upcoming"
                                                 } else {
                                                     "$date, ${TeenageMoneyRepository.displayMoney(amount, amountsMasked)} spent"
                                                 }
@@ -654,21 +663,15 @@ fun MonthCalendarCard(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (!isFuture && amount > 0.0) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .fillMaxHeight(fill)
-                                                    .align(Alignment.BottomCenter)
-                                                    .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
-                                                    .background(TMCoral)
-                                            )
-                                        }
                                         Text(
                                             text = date.dayOfMonth.toString(),
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (!isFuture && amount > maxDaily * 0.55) TMWhite else if (isFuture) TMMuted else TMInk
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = when {
+                                                isSelected -> TMWhite
+                                                isFuture -> TMMuted.copy(alpha = 0.5f)
+                                                else -> TMInk
+                                            }
                                         )
                                     }
                                 }
@@ -679,33 +682,33 @@ fun MonthCalendarCard(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${TeenageMoneyRepository.displayMoney(monthTotal, amountsMasked)} spent this month",
-                    fontSize = 13.sp,
-                    color = TMMuted,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = TeenageMoneyRepository.displayMoney(selectedTotal, amountsMasked),
-                    fontSize = 28.sp,
-                    color = TMInk,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    text = "${selectedDayTransactions.size} transaction${if (selectedDayTransactions.size == 1) "" else "s"} on $selectedLabel",
-                    fontSize = 13.sp,
-                    color = TMMuted
-                )
-            }
+        // Month total summary
+        Column {
+            Text(
+                text = TeenageMoneyRepository.displayMoney(monthTotal, amountsMasked) + " this month",
+                fontSize = 13.sp,
+                color = TMMuted,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = TeenageMoneyRepository.displayMoney(selectedTotal, amountsMasked),
+                fontSize = 28.sp,
+                color = TMInk,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.8).sp
+            )
+            Text(
+                text = "${selectedDayTransactions.size} transaction${if (selectedDayTransactions.size == 1) "" else "s"} on $selectedLabel",
+                fontSize = 13.sp,
+                color = TMMuted
+            )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONEY SPACES — Stacked cards for Spending, Savings, Emergency
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun SpacesSection(
@@ -714,138 +717,92 @@ fun SpacesSection(
     onSpaceClick: (MoneySpace) -> Unit,
     onAddSpaceClick: () -> Unit
 ) {
-    val spendingSpace = spaces.find { it.name == "Spending" }
-
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space12)) {
+        // Section header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    text = "Your spaces",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TMMuted
+                    text = "Your Spaces",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TMInk,
+                    letterSpacing = (-0.3).sp
                 )
                 Text(
                     text = "Where your money lives",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TMInk
-                )
-            }
-
-            TextButton(
-                onClick = onAddSpaceClick,
-                modifier = Modifier
-                    .heightIn(min = TMDimens.MinTouch)
-                    .semantics { contentDescription = "New space" }
-            ) {
-                Text(
-                    text = "New space",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TMInk
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(TMDimens.Space12))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(TMDimens.Radius16))
-                .background(TMPeachBg)
-                .border(1.dp, TMPeachBorder, RoundedCornerShape(TMDimens.Radius16))
-                .clickable(enabled = spendingSpace != null) {
-                    spendingSpace?.let(onSpaceClick)
-                }
-                .semantics { contentDescription = "Adjust Spending balance" }
-                .padding(TMDimens.Space16)
-        ) {
-            Column {
-                Text(
-                    text = "Spending",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TMInk
-                )
-                Text(
-                    text = spendingSpace?.note ?: "Everyday money",
                     fontSize = 13.sp,
                     color = TMMuted
                 )
-                Spacer(modifier = Modifier.height(TMDimens.Space8))
+            }
+            TextButton(
+                onClick = onAddSpaceClick,
+                modifier = Modifier.heightIn(min = TMDimens.MinTouch)
+            ) {
                 Text(
-                    text = TeenageMoneyRepository.displayMoney(spendingSpace?.balance ?: 0.0, amountsMasked),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TMPeachText
+                    text = "+ New",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TMMuted
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(TMDimens.Space12))
+        // Space cards
+        spaces.forEach { space ->
+            val (bg, border, accent) = when (space.name) {
+                "Spending" -> Triple(TMPeachBg, TMPeachBorder, TMPeachText)
+                "Savings" -> Triple(TMMintBg, TMMintBorder, TMMintText)
+                else -> Triple(TMLavenderBg, TMLavenderBorder, TMLavenderText)
+            }
 
-        val otherSpaces = spaces.filter { it.name != "Spending" }
-        otherSpaces.chunked(2).forEach { rowSpaces ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TMDimens.Space12)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(TMDimens.CardElevation, RoundedCornerShape(TMDimens.Radius20))
+                    .clip(RoundedCornerShape(TMDimens.Radius20))
+                    .background(bg)
+                    .clickable { onSpaceClick(space) }
+                    .semantics { contentDescription = "Adjust ${space.name} balance" }
+                    .padding(TMDimens.Space20)
             ) {
-                rowSpaces.forEach { space ->
-                    val isMint = space.name == "Savings"
-                    val bg = if (isMint) TMMintBg else TMLavenderBg
-                    val border = if (isMint) TMMintBorder else TMLavenderBorder
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(TMDimens.Radius16))
-                            .background(bg)
-                            .border(1.dp, border, RoundedCornerShape(TMDimens.Radius16))
-                            .clickable { onSpaceClick(space) }
-                            .semantics { contentDescription = "Adjust ${space.name} balance" }
-                            .padding(TMDimens.Space16)
-                    ) {
-                        Column {
-                            Text(text = space.icon, fontSize = 16.sp)
-                            Spacer(modifier = Modifier.height(TMDimens.Space8))
-                            Text(
-                                text = space.name,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TMInk,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = space.note,
-                                fontSize = 12.sp,
-                                color = TMMuted,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(TMDimens.Space8))
-                            Text(
-                                text = TeenageMoneyRepository.displayMoney(space.balance, amountsMasked),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TMInk
-                            )
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = space.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TMInk
+                        )
+                        Text(
+                            text = space.note,
+                            fontSize = 12.sp,
+                            color = TMMuted
+                        )
                     }
-                }
-                if (rowSpaces.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = TeenageMoneyRepository.displayMoney(space.balance, amountsMasked),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                        letterSpacing = (-0.3).sp
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(TMDimens.Space12))
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECENT ACTIVITY — Grouped transactions
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun RecentActivitySection(
@@ -854,24 +811,20 @@ fun RecentActivitySection(
     onSeeAllClick: () -> Unit,
     onTransactionClick: (TransactionItem) -> Unit
 ) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space12)) {
+        // Section header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    text = "Recent activity",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TMMuted
-                )
-                Text(
-                    text = "Your money trail",
+                    text = "Recent Activity",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TMInk
+                    color = TMInk,
+                    letterSpacing = (-0.3).sp
                 )
             }
             if (transactions.isNotEmpty()) {
@@ -881,45 +834,70 @@ fun RecentActivitySection(
                 ) {
                     Text(
                         text = "See all",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TMInk
+                        color = TMMuted
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(TMDimens.Space12))
-
+        // Transaction list card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(TMDimens.Radius16))
+                .shadow(TMDimens.CardElevation, RoundedCornerShape(TMDimens.Radius20))
+                .clip(RoundedCornerShape(TMDimens.Radius20))
                 .background(TMWhite)
-                .border(1.dp, TMLine, RoundedCornerShape(TMDimens.Radius16))
                 .padding(TMDimens.Space16)
         ) {
             if (transactions.isEmpty()) {
-                Text(
-                    text = "No transactions yet.\nTap Log expense or Add money to get started.",
-                    fontSize = 13.sp,
-                    color = TMMuted,
-                    modifier = Modifier.padding(TMDimens.Space12)
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(TMDimens.Space16),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No transactions yet",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TMInk
+                    )
+                    Spacer(modifier = Modifier.height(TMDimens.Space4))
+                    Text(
+                        text = "Log an expense or add money to get started.",
+                        fontSize = 13.sp,
+                        color = TMMuted
+                    )
+                }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space8)) {
-                    transactions.take(3).forEach { t ->
+                Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space2)) {
+                    transactions.take(4).forEachIndexed { index, t ->
                         TransactionRow(
                             transaction = t,
                             amountsMasked = amountsMasked,
                             onClick = { onTransactionClick(t) }
                         )
+                        if (index < transactions.take(4).size - 1) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 54.dp)
+                                    .height(TMDimens.Divider)
+                                    .background(TMLine)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSACTION ROW — Individual transaction item
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun TransactionRow(
@@ -932,7 +910,7 @@ fun TransactionRow(
         "blue" -> Pair(TMIconsTransportBg, TMIconsTransportFg)
         "mint" -> Pair(TMIconsEducationBg, TMIconsEducationFg)
         "violet" -> Pair(TMIconsShoppingBg, TMIconsShoppingFg)
-        else -> Pair(TMPeachBg, TMCoral)
+        else -> Pair(TMCoralLight, TMCoral)
     }
     val isIncome = transaction.type == "income"
     val amountText = (if (isIncome) "+" else "−") +
@@ -951,31 +929,34 @@ fun TransactionRow(
                 } else Modifier
             )
             .semantics { contentDescription = rowDescription }
-            .padding(vertical = TMDimens.Space4),
+            .padding(vertical = TMDimens.Space8),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Category icon
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
+                .size(TMDimens.IconCircle)
+                .clip(RoundedCornerShape(TMDimens.Radius12))
                 .background(bg),
             contentAlignment = Alignment.Center
         ) {
             Text(text = transaction.icon, fontSize = 18.sp, color = fg)
         }
         Spacer(modifier = Modifier.width(TMDimens.Space12))
+
+        // Title & category
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = transaction.title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
                 color = TMInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = transaction.category,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 color = TMMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -984,21 +965,26 @@ fun TransactionRow(
 
         Spacer(modifier = Modifier.width(TMDimens.Space8))
 
+        // Amount & date
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = amountText,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isIncome) Color(0xFF2E9A66) else TMInk
+                fontWeight = FontWeight.SemiBold,
+                color = if (isIncome) TMSuccess else TMInk
             )
             Text(
                 text = transaction.day,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = TMMuted
             )
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOTTOM NAV BAR — Minimal pill navigation
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun BottomNavBar(
@@ -1011,71 +997,54 @@ fun BottomNavBar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = TMDimens.Space16, vertical = TMDimens.Space8)
+            .padding(horizontal = TMDimens.Space24, vertical = TMDimens.Space12)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(32.dp))
-                .clip(RoundedCornerShape(32.dp))
+                .shadow(TMDimens.CardElevationHigh, RoundedCornerShape(TMDimens.Radius28))
+                .clip(RoundedCornerShape(TMDimens.Radius28))
                 .background(TMWhite)
-                .border(1.dp, TMLine, RoundedCornerShape(32.dp))
-                .padding(horizontal = TMDimens.Space8, vertical = TMDimens.Space4),
+                .padding(horizontal = TMDimens.Space8, vertical = TMDimens.Space6),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEach { title ->
                 val isSelected = activeTab == title
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                val bgColor by animateColorAsState(
+                    targetValue = if (isSelected) TMInk else Color.Transparent,
+                    animationSpec = tween(250),
+                    label = "navBg"
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) TMWhite else TMMuted,
+                    animationSpec = tween(250),
+                    label = "navText"
+                )
+
+                Box(
                     modifier = Modifier
+                        .clip(RoundedCornerShape(TMDimens.Radius20))
+                        .background(bgColor)
                         .clickable { onTabSelected(title) }
-                        .sizeIn(minWidth = 64.dp, minHeight = TMDimens.MinTouch)
+                        .sizeIn(minWidth = 80.dp, minHeight = TMDimens.MinTouch)
                         .semantics {
                             contentDescription = "Open $title"
                             selected = isSelected
                             stateDescription = if (isSelected) "selected" else "not selected"
                             role = Role.Tab
                         }
-                        .padding(horizontal = TMDimens.Space8, vertical = TMDimens.Space4)
+                        .padding(horizontal = TMDimens.Space16, vertical = TMDimens.Space8),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = title,
                         fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) TMCoral else TMMuted
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = textColor
                     )
                 }
             }
         }
     }
-}
-
-@Preview(name = "Hero 360", widthDp = 360, showBackground = true, backgroundColor = 0xFFFBFAF8)
-@Composable
-private fun SpendingHeroCardPreview() {
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SpendingHeroCard(
-            spendingBalance = 1234567.89,
-            otherSpaceCount = 2,
-            expenseCount = 4,
-            amountsMasked = false,
-            onAddClick = {},
-            onPrivacyToggle = {}
-        )
-        LogExpenseButton(onClick = {})
-    }
-}
-
-@Preview(name = "Hero fontScale 2", widthDp = 360, fontScale = 2.0f, showBackground = true)
-@Composable
-private fun SpendingHeroCardLargeFontPreview() {
-    SpendingHeroCard(
-        spendingBalance = 125000.0,
-        otherSpaceCount = 2,
-        expenseCount = 1,
-        amountsMasked = false,
-        onAddClick = {},
-        onPrivacyToggle = {}
-    )
 }
