@@ -345,6 +345,7 @@ fun ProfileScreen(
     onSoundEnabledChange: (Boolean) -> Unit,
     onExport: () -> Unit,
     onAddMoneyClick: () -> Unit = {},
+    onEditSpendingBalance: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     var salaryText by remember { mutableStateOf(if (monthlySalary > 0) monthlySalary.toInt().toString() else "") }
@@ -395,6 +396,17 @@ fun ProfileScreen(
             SnapshotRow("Spending space", TeenageMoneyRepository.displayMoney(spendingBalance, amountsMasked))
             SnapshotRow("Other spaces", TeenageMoneyRepository.displayMoney(otherSpacesBalance, amountsMasked))
             SnapshotRow("Recorded transactions", transactions.size.toString())
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(TMLine)
+                    .clickable(onClick = onEditSpendingBalance)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text("Edit spending balance →", color = TMInk, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
         }
 
         Column(modifier = Modifier.fillMaxWidth().padding(top = 14.dp).padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

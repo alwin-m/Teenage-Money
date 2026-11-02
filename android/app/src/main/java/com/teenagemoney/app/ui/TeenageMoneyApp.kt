@@ -274,6 +274,10 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                     vibrate(15)
                                     showAddMoney = true
                                 },
+                                 onEditSpendingBalance = {
+                                     spaces.find { it.name == "Spending" }?.let { editingSpace = it }
+                                         ?: showToast("Spending space is not available")
+                                 },
                                 onBack = { activeTab = "Home" }
                             )
                         }

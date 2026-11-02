@@ -1,5 +1,17 @@
 # Teenage Money UI/UX history
 
+## TM-CHANGE-000007 — Profile balance correction
+
+- **Base version:** `1.0.0`
+- **Target version:** Proposed `1.1.0`
+- **Status:** In progress
+- **Date:** 2026-11-02
+- **Screen:** Profile
+- **New behavior:** The Local money snapshot now includes an Edit spending balance action. It opens the existing balance confirmation sheet so users can record a real-world loss or other correction without changing the surrounding navigation or visual system.
+- **Data impact:** No schema change. The existing persisted space balance is updated and a manual balance-correction transaction is recorded.
+- **Accessibility:** The action retains the existing standard touch target pattern and uses clear text describing the affected balance.
+- **Verification:** `testDebugUnitTest`, `lintDebug`, and `assembleDebug` pending for this change. Device/emulator acceptance remains outstanding.
+
 ## TM-CHANGE-000006 — Active-surface cleanup
 
 - **Base version:** `1.0.0`

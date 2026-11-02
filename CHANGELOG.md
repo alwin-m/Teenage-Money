@@ -2,6 +2,18 @@
 
 This is the cumulative product ledger. Entries describe changes that are present in the repository and are intended to make an APK identifiable without relying on memory or chat history.
 
+## Unreleased — 2026-11-02 Profile balance correction
+
+### Added
+
+- Added a Profile > Local money snapshot action to edit the persisted Spending balance when cash is lost or the real balance changes outside the app.
+- Reused the existing confirmation sheet and balance-correction transaction so the updated amount remains synchronized across Home, Activity, receipts, and Profile.
+
+### Verification
+
+- `./gradlew.bat testDebugUnitTest lintDebug assembleDebug` pending for this change.
+- Device/emulator acceptance remains unverified until an Android runtime is available.
+
 ## Unreleased — 2026-11-01 UI/UX Modernization
 
 ### Changed
