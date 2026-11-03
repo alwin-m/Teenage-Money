@@ -4,11 +4,11 @@ Audit date: 2026-10-06
 
 ## Final status
 
-Teenage Money is private, proprietary software owned by Alwin Madhu. The project does not grant permission to copy, modify, redistribute, sublicense, publish, or commercially distribute the Teenage Money codebase, brand, design, documentation, or project-owned assets.
+Teenage Money is private, proprietary software owned by Alwin Madhu (creator / watermark identity: `© j_e_e_n._`). The project does not grant permission to copy, modify, redistribute, sublicense, publish, or commercially distribute the Teenage Money codebase, brand, design, documentation, or project-owned assets.
 
 Owner:
 
-- Alwin Madhu
+- Alwin Madhu (`© j_e_e_n._`)
 - alwinmadhu7@gmail.com
 - alwinmadhu4060@gmail.com
 - https://orcid.org/0009-0008-2826-5082

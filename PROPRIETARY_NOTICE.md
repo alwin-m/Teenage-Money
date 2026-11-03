@@ -2,10 +2,11 @@
 
 Teenage Money is private, proprietary software owned exclusively by:
 
-**Alwin Madhu**  
+**Alwin Madhu** (Creator / Watermark identity: **`© j_e_e_n._`**)  
 Primary email: alwinmadhu7@gmail.com  
 Secondary email: alwinmadhu4060@gmail.com  
-ORCID: https://orcid.org/0009-0008-2826-5082
+ORCID: https://orcid.org/0009-0008-2826-5082  
+Instagram: [@j_e_e_n._](https://instagram.com/j_e_e_n._)  
 
 All source code, application design, user interface, documentation, assets, branding, icons, receipt visual system, build configuration, and related project materials are reserved. No permission is granted to copy, modify, redistribute, sublicense, publish, or use this project commercially or otherwise without the owner's written permission.
 

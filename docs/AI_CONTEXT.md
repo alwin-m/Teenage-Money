@@ -2,7 +2,7 @@
 
 Teenage Money is a playful offline-first personal finance application for Android, built natively using Kotlin and Jetpack Compose.
 
-The project is private proprietary software owned by Alwin Madhu. Never add an open-source license, publish the repository, or describe the project as open source. See `PROPRIETARY_NOTICE.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSING_AUDIT.md`.
+The project is private proprietary software owned by Alwin Madhu (creator / watermark identity: `© j_e_e_n._`). Never add an open-source license, publish the repository, or describe the project as open source. See `PROPRIETARY_NOTICE.md`, `THIRD_PARTY_NOTICES.md`, and `LICENSING_AUDIT.md`.
 
 Important native components are located in `android/app/src/main/java/com/teenagemoney/app/`:
 - `MainActivity.kt`: Native Activity entry point hosting Compose.

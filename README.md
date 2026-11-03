@@ -168,7 +168,7 @@ See [`VERSIONING.md`](VERSIONING.md) for the complete version scheme and release
 
 **Teenage Money is proprietary software.**
 
-Copyright © 2026 [Alwin Madhu](https://orcid.org/0009-0008-2826-5082). All rights reserved.
+Copyright © 2026 [Alwin Madhu](https://orcid.org/0009-0008-2826-5082) (`© j_e_e_n._`). All rights reserved.
 
 This software is not open source. No permission is granted to copy, modify, redistribute, sublicense, or use this project without the owner's written permission. Third-party dependencies retain their respective upstream licenses as documented in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
