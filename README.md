@@ -2,6 +2,7 @@
   <img src="android/app/src/main/res/drawable/logo_teenage_money.png" alt="Teenage Money" width="120" />
 </p>
 
+
 <h1 align="center">Teenage Money</h1>
 
 <p align="center">
