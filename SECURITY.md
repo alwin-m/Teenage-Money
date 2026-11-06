@@ -2,6 +2,7 @@
 
 ## Reporting a Vulnerability
 
+
 If you discover a security issue, please report it responsibly by emailing **alwinmadhu7@gmail.com**. Do not open a public GitHub issue for security vulnerabilities.
 
 ## Security Model
