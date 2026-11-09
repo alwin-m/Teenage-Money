@@ -2,6 +2,46 @@
 
 This is the cumulative product ledger. Entries describe changes that are present in the repository and are intended to make an APK identifiable without relying on memory or chat history.
 
+## Unreleased — proposed 1.1.0 — 2026-11-09 Home-screen widget and quick transaction entry
+
+### Added
+
+- Added a fully responsive home-screen widget backed by the local SQLite database supporting Compact (2×1), Medium (3×2), and Expanded (4×2) layouts.
+- Exposed available balance hero, weekly income and expenses breakdown, financial health indicator (`● Healthy`, `● On track`, `● Careful`, `● Low funds`), current date, and recent activity.
+- Added a dedicated quick-entry overlay activity (`QuickExpenseActivity`) launched directly from the widget's `＋ Add` action with `excludeFromRecents="true"`.
+- Implemented segmented switching between Expense and Income logging, numeric keypad with tactile haptics, category chips with icons, destination space selection, optional descriptions, and an animated confirmation state before returning to the launcher.
+- Added automatic real-time widget refresh on all transaction and space balance mutations in `TeenageMoneyRepository`.
+- Documented the architecture and design in [docs/WIDGET_PLAN.md](docs/WIDGET_PLAN.md) and [docs/change-records/TM-CHANGE-000010-home-screen-widget-demo.md](docs/change-records/TM-CHANGE-000010-home-screen-widget-demo.md).
+
+### Verification
+
+- `./gradlew.bat testDebugUnitTest` passed (15 tests, 0 failures).
+- `./gradlew.bat assembleDebug` and `./gradlew.bat assembleRelease` passed.
+
+## Unreleased — proposed 1.1.0 — 2026-11-03 Home, Profile, salary planning, and receipts
+
+### Changed
+
+- Shortened and parallelized the branded splash transition so first use is not held behind sequential animation delays.
+- Kept the existing balance card design while making large Indian-formatted amounts responsive instead of clipping them beside the privacy control.
+- Replaced the privacy text pill with an accessible eye-only visibility button.
+- Reset Week and Month views to the current date when switching periods, use one consistent device-local date for calendar selection, and allow browsing prior weeks/months with the existing arrow controls.
+- Added a Profile salary-allocation bottom sheet with percentage validation and calculated amounts; it is planning-only and does not mutate money-space balances.
+- Added triple-tap details on the About section for the author and watermark identity.
+- Added a persisted local profile-photo picker; the selected photo is reused in the Home and Profile avatar surfaces.
+- Replaced decorative receipt bars with a Code 128 barcode and changed receipt sharing from text to a PNG image shared through a controlled `FileProvider` URI.
+- Added a share-time balance visibility toggle and synchronized the corrected balance transaction list after Profile edits.
+
+### Verification
+
+- `./gradlew.bat testDebugUnitTest lintDebug assembleDebug` passed for the implementation pass.
+- `./gradlew.bat assembleRelease` passed.
+- Build ID: `1.1.0-20261103.1151`.
+- 12 unit tests passed with 0 failures/errors; lint reported 36 non-blocking warnings.
+- Debug APK SHA-256: `071ED06EBD04EDF26E9D57342DD0EF5902A48EA707AF964B8760124C07E7EFCF`.
+- Release APK SHA-256: `DDB8CC2CB19293933A5E24743DBA53BB93723B69C946AE13481D36272DB8CC70`.
+- Device/emulator verification remains required for startup timing, touch interaction, large-amount layout, and calendar behavior.
+
 ## Unreleased — 2026-11-02 Profile balance correction
 
 ### Added

@@ -28,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.R
 import com.teenagemoney.app.ui.theme.TMBackground
 import com.teenagemoney.app.ui.theme.TMMuted
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(onDone: () -> Unit) {
@@ -36,9 +38,11 @@ fun SplashScreen(onDone: () -> Unit) {
     val scaleAnim = remember { Animatable(0.92f) }
 
     LaunchedEffect(Unit) {
-        alphaAnim.animateTo(1f, animationSpec = tween(400))
-        scaleAnim.animateTo(1f, animationSpec = tween(400))
-        delay(400) // Professional, crisp startup
+        coroutineScope {
+            launch { alphaAnim.animateTo(1f, animationSpec = tween(220)) }
+            launch { scaleAnim.animateTo(1f, animationSpec = tween(220)) }
+        }
+        delay(100) // Keep the branded transition, without delaying first use.
         onDone()
     }
 

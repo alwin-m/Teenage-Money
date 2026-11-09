@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.Random
 import java.math.RoundingMode
+import com.teenagemoney.app.widget.TeenageMoneyWidget
 
 class TeenageMoneyRepository(private val context: Context) {
 
@@ -77,11 +78,21 @@ class TeenageMoneyRepository(private val context: Context) {
         fun currentWeekBoundsMs(): Pair<Long, Long> {
             val zone  = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
-            val monday = today.with(DayOfWeek.MONDAY)
-            val nextMonday = monday.plusDays(7)
-            val startMs = monday.atStartOfDay(zone).toInstant().toEpochMilli()
-            val endMs   = nextMonday.atStartOfDay(zone).toInstant().toEpochMilli()
-            return Pair(startMs, endMs)
+            return weekBoundsMs(today.with(DayOfWeek.MONDAY), zone)
+        }
+
+        private fun weekBoundsMs(weekStart: LocalDate, zone: ZoneId): Pair<Long, Long> {
+            val startMs = weekStart.atStartOfDay(zone).toInstant().toEpochMilli()
+            val endMs = weekStart.plusDays(7).atStartOfDay(zone).toInstant().toEpochMilli()
+            return startMs to endMs
+        }
+
+        fun calcSpentForWeek(transactions: List<TransactionItem>, weekStart: LocalDate): Double {
+            val zone = ZoneId.systemDefault()
+            val (startMs, endMs) = weekBoundsMs(weekStart, zone)
+            return transactions
+                .filter { it.type == "expense" && it.epochMs in startMs until endMs }
+                .sumOf { it.amount }
         }
 
         /**
@@ -89,34 +100,83 @@ class TeenageMoneyRepository(private val context: Context) {
          * Only counts expense-type transactions whose epochMs falls in the current week.
          */
         fun calcSpentThisWeek(transactions: List<TransactionItem>): Double {
-            val (startMs, endMs) = currentWeekBoundsMs()
+            val today = LocalDate.now(ZoneId.systemDefault())
+            return calcSpentForWeek(transactions, today.with(DayOfWeek.MONDAY))
+        }
+
+        fun calcIncomeForWeek(transactions: List<TransactionItem>, weekStart: LocalDate): Double {
+            val zone = ZoneId.systemDefault()
+            val (startMs, endMs) = weekBoundsMs(weekStart, zone)
             return transactions
-                .filter { it.type == "expense" && it.epochMs in startMs until endMs }
+                .filter { it.type == "income" && it.epochMs in startMs until endMs }
                 .sumOf { it.amount }
+        }
+
+        fun calcIncomeThisWeek(transactions: List<TransactionItem>): Double {
+            val today = LocalDate.now(ZoneId.systemDefault())
+            return calcIncomeForWeek(transactions, today.with(DayOfWeek.MONDAY))
+        }
+
+        fun calcTotalIncome(transactions: List<TransactionItem>): Double {
+            return transactions.filter { it.type == "income" }.sumOf { it.amount }
+        }
+
+        fun calcTotalExpenses(transactions: List<TransactionItem>): Double {
+            return transactions.filter { it.type == "expense" }.sumOf { it.amount }
+        }
+
+        fun evaluateFinancialPosition(spendingBalance: Double, spentThisWeek: Double): FinancialPosition {
+            return when {
+                spendingBalance <= 0.0 -> FinancialPosition.LOW_FUNDS
+                spendingBalance < 500.0 -> FinancialPosition.LOW_FUNDS
+                spendingBalance < 1500.0 -> FinancialPosition.CAREFUL
+                spentThisWeek > 0.0 && spendingBalance < spentThisWeek * 0.5 -> FinancialPosition.CAREFUL
+                spendingBalance >= 5000.0 || (spentThisWeek > 0.0 && spendingBalance >= spentThisWeek * 1.5) -> FinancialPosition.HEALTHY
+                else -> FinancialPosition.ON_TRACK
+            }
+        }
+
+        fun widgetDateText(date: LocalDate = LocalDate.now(ZoneId.systemDefault())): String {
+            return date.format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.ENGLISH))
         }
 
         fun currentMonthBoundsMs(): Pair<Long, Long> {
             val zone = ZoneId.systemDefault()
             val first = LocalDate.now(zone).withDayOfMonth(1)
-            val next = first.plusMonths(1)
-            return first.atStartOfDay(zone).toInstant().toEpochMilli() to
+            return monthBoundsMs(first, zone)
+        }
+
+        private fun monthBoundsMs(monthStart: LocalDate, zone: ZoneId): Pair<Long, Long> {
+            val next = monthStart.plusMonths(1)
+            return monthStart.atStartOfDay(zone).toInstant().toEpochMilli() to
                 next.atStartOfDay(zone).toInstant().toEpochMilli()
         }
 
-        fun calcSpentThisMonth(transactions: List<TransactionItem>): Double {
-            val (startMs, endMs) = currentMonthBoundsMs()
+        fun calcSpentForMonth(transactions: List<TransactionItem>, monthStart: LocalDate): Double {
+            val (startMs, endMs) = monthBoundsMs(monthStart.withDayOfMonth(1), ZoneId.systemDefault())
             return transactions
                 .filter { it.type == "expense" && it.epochMs in startMs until endMs }
                 .sumOf { it.amount }
         }
 
+        fun calcSpentThisMonth(transactions: List<TransactionItem>): Double {
+            val today = LocalDate.now(ZoneId.systemDefault())
+            return calcSpentForMonth(transactions, today.withDayOfMonth(1))
+        }
+
         fun calcMonthDailyTotals(transactions: List<TransactionItem>): List<Double> {
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
-            val totals = DoubleArray(today.lengthOfMonth())
+            return calcMonthDailyTotals(transactions, today.withDayOfMonth(1))
+        }
+
+        fun calcMonthDailyTotals(transactions: List<TransactionItem>, monthStart: LocalDate): List<Double> {
+            val zone = ZoneId.systemDefault()
+            val month = monthStart.withDayOfMonth(1)
+            val totals = DoubleArray(month.lengthOfMonth())
             transactions.filter { it.type == "expense" && it.epochMs > 0L }.forEach { tx ->
                 val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(tx.epochMs), zone).toLocalDate()
-                if (date.year == today.year && date.month == today.month) {
+                if (date.year == month.year && date.month == month.month) {
                     totals[date.dayOfMonth - 1] += tx.amount
                 }
             }
@@ -124,12 +184,17 @@ class TeenageMoneyRepository(private val context: Context) {
         }
 
         fun expensesOnMonthDay(transactions: List<TransactionItem>, dayOfMonth: Int): List<TransactionItem> {
+            val today = LocalDate.now(ZoneId.systemDefault())
+            return expensesOnMonthDay(transactions, today.withDayOfMonth(1), dayOfMonth)
+        }
+
+        fun expensesOnMonthDay(transactions: List<TransactionItem>, monthStart: LocalDate, dayOfMonth: Int): List<TransactionItem> {
             val zone = ZoneId.systemDefault()
-            val today = LocalDate.now(zone)
+            val month = monthStart.withDayOfMonth(1)
+            val target = month.withDayOfMonth(dayOfMonth.coerceIn(1, month.lengthOfMonth()))
             return transactions.filter { tx ->
                 tx.type == "expense" && tx.epochMs > 0L &&
-                    LocalDateTime.ofInstant(Instant.ofEpochMilli(tx.epochMs), zone).toLocalDate() ==
-                    today.withDayOfMonth(dayOfMonth)
+                    LocalDateTime.ofInstant(Instant.ofEpochMilli(tx.epochMs), zone).toLocalDate() == target
             }
         }
 
@@ -138,9 +203,13 @@ class TeenageMoneyRepository(private val context: Context) {
          * (index 0 = Monday … index 6 = Sunday) — used for the bar chart.
          */
         fun calcWeekDailyTotals(transactions: List<TransactionItem>): List<Double> {
-            val zone   = ZoneId.systemDefault()
-            val today  = LocalDate.now(zone)
-            val monday = today.with(DayOfWeek.MONDAY)
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            return calcWeekDailyTotals(transactions, today.with(DayOfWeek.MONDAY))
+        }
+
+        fun calcWeekDailyTotals(transactions: List<TransactionItem>, weekStart: LocalDate): List<Double> {
+            val zone = ZoneId.systemDefault()
             val totals = DoubleArray(7)
             transactions
                 .filter { it.type == "expense" }
@@ -150,8 +219,8 @@ class TeenageMoneyRepository(private val context: Context) {
                             .ofInstant(java.time.Instant.ofEpochMilli(tx.epochMs), zone)
                             .toLocalDate()
                         val dayIndex = txDate.dayOfWeek.value - 1 // Mon=0 … Sun=6
-                        val weekStart = txDate.with(DayOfWeek.MONDAY)
-                        if (weekStart == monday) {
+                        val transactionWeekStart = txDate.with(DayOfWeek.MONDAY)
+                        if (transactionWeekStart == weekStart) {
                             totals[dayIndex] += tx.amount
                         }
                     }
@@ -163,7 +232,13 @@ class TeenageMoneyRepository(private val context: Context) {
          * Current-week expense transactions for a weekday index (Mon=0 … Sun=6).
          */
         fun expensesOnWeekDay(transactions: List<TransactionItem>, dayIndex: Int): List<TransactionItem> {
-            val (startMs, endMs) = currentWeekBoundsMs()
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            return expensesOnWeekDay(transactions, today.with(DayOfWeek.MONDAY), dayIndex)
+        }
+
+        fun expensesOnWeekDay(transactions: List<TransactionItem>, weekStart: LocalDate, dayIndex: Int): List<TransactionItem> {
+            val (startMs, endMs) = weekBoundsMs(weekStart, ZoneId.systemDefault())
             val zone = ZoneId.systemDefault()
             return transactions.filter { tx ->
                 tx.type == "expense" &&
@@ -200,8 +275,10 @@ class TeenageMoneyRepository(private val context: Context) {
 
     // Spaces
     fun getSpaces(): List<MoneySpace> = dbHelper.getSpaces()
-    fun updateSpaceBalance(name: String, newBalance: Double) =
+    fun updateSpaceBalance(name: String, newBalance: Double) {
         dbHelper.updateSpaceBalance(name, newBalance)
+        TeenageMoneyWidget.refreshAll(context)
+    }
 
     fun addSpace(name: String, note: String = "Custom money space"): Boolean {
         require(name.trim().isNotEmpty()) { "Enter a space name" }
@@ -212,11 +289,30 @@ class TeenageMoneyRepository(private val context: Context) {
     fun getMonthlySalary(): Double = dbHelper.getPreference("monthly_salary", "0").toDoubleOrNull() ?: 0.0
     fun saveMonthlySalary(amount: Double) = dbHelper.setPreference("monthly_salary", amount.toString())
 
+    fun getSalaryAllocation(): SalaryAllocation = SalaryAllocation(
+        spendingPercent = dbHelper.getPreference("salary_spending_percent", "50").toIntOrNull() ?: 50,
+        savingsPercent = dbHelper.getPreference("salary_savings_percent", "30").toIntOrNull() ?: 30,
+        emergencyPercent = dbHelper.getPreference("salary_emergency_percent", "20").toIntOrNull() ?: 20
+    )
+
+    fun saveSalaryAllocation(allocation: SalaryAllocation) {
+        require(allocation.spendingPercent in 0..100) { "Spending percentage must be 0–100" }
+        require(allocation.savingsPercent in 0..100) { "Savings percentage must be 0–100" }
+        require(allocation.emergencyPercent in 0..100) { "Emergency percentage must be 0–100" }
+        require(allocation.totalPercent == 100) { "Percentages must add up to 100" }
+        dbHelper.setPreference("salary_spending_percent", allocation.spendingPercent.toString())
+        dbHelper.setPreference("salary_savings_percent", allocation.savingsPercent.toString())
+        dbHelper.setPreference("salary_emergency_percent", allocation.emergencyPercent.toString())
+    }
+
     fun isSoundEnabled(): Boolean = dbHelper.getPreference("sound_enabled", "true") == "true"
     fun saveSoundEnabled(enabled: Boolean) = dbHelper.setPreference("sound_enabled", enabled.toString())
 
     fun isPrivacyMode(): Boolean = dbHelper.getPreference("privacy_mode", "false") == "true"
-    fun savePrivacyMode(enabled: Boolean) = dbHelper.setPreference("privacy_mode", if (enabled) "true" else "false")
+    fun savePrivacyMode(enabled: Boolean) {
+        dbHelper.setPreference("privacy_mode", if (enabled) "true" else "false")
+        TeenageMoneyWidget.refreshAll(context)
+    }
 
     fun getCategories(): List<String> {
         val defaults = listOf("Food", "Transport", "Education", "Shopping", "Entertainment")
@@ -293,32 +389,52 @@ class TeenageMoneyRepository(private val context: Context) {
         )
 
         dbHelper.addTransaction(transaction)
+        TeenageMoneyWidget.refreshAll(context)
         return Pair(transaction, newSpending)
     }
 
-    fun addMoney(amount: Double, destinationSpace: String): TransactionItem {
+    fun addIncome(
+        title: String,
+        amount: Double,
+        category: String = "Income",
+        destinationSpace: String = "Spending",
+        source: String = "Manual"
+    ): TransactionItem {
         val spaces  = getSpaces().associate { it.name to it.balance }.toMutableMap()
         val current = spaces[destinationSpace] ?: 0.0
         require(amount > 0) { "Amount must be greater than zero" }
 
         val updated = current + amount
-        updateSpaceBalance(destinationSpace, updated)
+        dbHelper.updateSpaceBalance(destinationSpace, updated)
 
         val epochMs = System.currentTimeMillis()
         val now = LocalDateTime.now()
         val timeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.ENGLISH)
         val timestamp = now.format(timeFormatter)
 
+        val icon = when (category.lowercase(Locale.ENGLISH)) {
+            "allowance", "pocket money" -> "🎁"
+            "salary", "job" -> "💼"
+            "freelance", "side hustle" -> "💻"
+            "gift" -> "✨"
+            else -> "↓"
+        }
+        val color = when (category.lowercase(Locale.ENGLISH)) {
+            "freelance", "side hustle" -> "blue"
+            "gift" -> "peach"
+            else -> "mint"
+        }
+
         val transaction = TransactionItem(
             id            = epochMs,
             type          = "income",
-            title         = "Added to $destinationSpace",
-            category      = "Income",
-            source        = "Manual",
+            title         = title.trim().ifBlank { "Added to $destinationSpace" },
+            category      = category.trim().ifBlank { "Income" },
+            source        = source,
             amount        = amount,
             day           = "Today",
-            icon          = "↓",
-            color         = "mint",
+            icon          = icon,
+            color         = color,
             timestamp     = timestamp,
             receiptNumber = "",
             remaining     = updated,
@@ -326,7 +442,18 @@ class TeenageMoneyRepository(private val context: Context) {
         )
 
         dbHelper.addTransaction(transaction)
+        TeenageMoneyWidget.refreshAll(context)
         return transaction
+    }
+
+    fun addMoney(amount: Double, destinationSpace: String): TransactionItem {
+        return addIncome(
+            title = "Added to $destinationSpace",
+            amount = amount,
+            category = "Income",
+            destinationSpace = destinationSpace,
+            source = "Manual"
+        )
     }
 
     fun correctSpaceBalance(spaceName: String, newBalance: Double): TransactionItem? {
@@ -351,6 +478,7 @@ class TeenageMoneyRepository(private val context: Context) {
         )
         updateSpaceBalance(spaceName, newBalance)
         dbHelper.addTransaction(transaction)
+        TeenageMoneyWidget.refreshAll(context)
         return transaction
     }
 
@@ -361,7 +489,7 @@ class TeenageMoneyRepository(private val context: Context) {
         val txJson = getTransactions().joinToString(",") { "{" + "\"id\":${it.id},\"type\":${quote(it.type)},\"title\":${quote(it.title)},\"category\":${quote(it.category)},\"source\":${quote(it.source)},\"amount\":${it.amount},\"timestamp\":${quote(it.timestamp)}" + "}" }
         val goalsJson = getGoals().joinToString(",") { "{" + "\"id\":${it.id},\"title\":${quote(it.title)},\"target\":${it.target},\"saved\":${it.saved}" + "}" }
         return "{" +
-            "\"profile\":{" + "\"name\":${quote(profile?.name ?: "")},\"dateOfBirth\":${quote(profile?.dateOfBirth ?: "")},\"monthlySalary\":${getMonthlySalary()}" + "}," +
+            "\"profile\":{" + "\"name\":${quote(profile?.name ?: "")},\"dateOfBirth\":${quote(profile?.dateOfBirth ?: "")},\"avatarUri\":${quote(profile?.avatarUri ?: "")},\"monthlySalary\":${getMonthlySalary()}" + "}," +
             "\"spaces\":[$spacesJson],\"transactions\":[$txJson],\"goals\":[$goalsJson]" +
             "}"
     }

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Teenage Money</string>
+    <string name="widget_description">See money left, weekly spending, and add an expense from your home screen.</string>
+    <string name="widget_brand">teenage money</string>
+    <string name="widget_add">＋ Add</string>
+    <string name="widget_add_expense_cd">Add expense</string>
+    <string name="widget_money_left">MONEY LEFT TO SPEND</string>
+    <string name="widget_zero_balance">₹0</string>
+    <string name="widget_spent_this_week">SPENT THIS WEEK</string>
+    <string name="widget_income">INCOME</string>
+    <string name="widget_expenses">EXPENSES</string>
+    <string name="widget_quick_hint">tap + to log without opening the app</string>
+    <string name="widget_recent_spending">RECENT ACTIVITY</string>
 </resources>

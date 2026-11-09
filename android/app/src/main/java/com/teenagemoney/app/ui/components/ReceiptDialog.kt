@@ -1,6 +1,8 @@
 package com.teenagemoney.app.ui.components
 
 import android.content.Intent
+import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,15 +21,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -46,13 +57,14 @@ import com.teenagemoney.app.ui.theme.TMWhite
 fun ReceiptDialog(
     transaction: TransactionItem,
     amountsMasked: Boolean = false,
+    userName: String = "",
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val receiptId = transaction.receiptNumber.ifEmpty { "TM-${transaction.id}" }
     val amountText = TeenageMoneyRepository.displayMoney(transaction.amount, amountsMasked)
     val remainingText = TeenageMoneyRepository.displayMoney(transaction.remaining, amountsMasked)
-    val shareText = "Teenage Money receipt $receiptId — $amountText spent on ${transaction.title}."
+    var shareBalanceMasked by remember { mutableStateOf(amountsMasked) }
 
     Box(
         modifier = Modifier
@@ -87,7 +99,7 @@ fun ReceiptDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("✦", fontSize = 46.sp, color = TMCoral)
-                    Text("Thank you!", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TMInk)
+                    Text("Thank you, ${userName.ifBlank { "there" }}!", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TMInk)
                     Text("Your expense has been saved successfully", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = TMMuted, textAlign = TextAlign.Center)
                 }
 
@@ -140,12 +152,42 @@ fun ReceiptDialog(
                     ) { Text("Done", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
                     TextButton(
                         onClick = {
-                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }, "Share receipt"))
+                            shareBalanceMasked = !shareBalanceMasked
                         }
-                    ) { Text("↗  Share Receipt", fontFamily = FontFamily.Monospace, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted) }
+                    ) {
+                        Icon(
+                            imageVector = if (shareBalanceMasked) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = null,
+                            tint = TMMuted
+                        )
+                        Text(
+                            if (shareBalanceMasked) "  Balance hidden" else "  Balance visible",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TMMuted
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            try {
+                                val uri = shareableReceiptUri(
+                                    context = context,
+                                    transaction = transaction,
+                                    userName = userName,
+                                    amountsMasked = amountsMasked,
+                                    balanceMasked = shareBalanceMasked
+                                )
+                                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                    type = "image/png"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }, "Share receipt image"))
+                            } catch (error: Exception) {
+                                Toast.makeText(context, error.message ?: "Could not share receipt", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) { Text("↗  Share receipt image", fontFamily = FontFamily.Monospace, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted) }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -376,23 +418,22 @@ fun DashedDivider(modifier: Modifier = Modifier) {
 
 @Composable
 fun BarcodePattern(receiptNumber: String) {
-    Row(
+    val modules = remember(receiptNumber) { code128BModules(receiptNumber) }
+    Canvas(
         modifier = Modifier
             .fillMaxWidth(0.85f)
             .height(34.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        val seed = receiptNumber.ifEmpty { "TM-26-08-06-A12B" }
-        for (i in seed.indices) {
-            val charCode = seed[i].code
-            val width = if (charCode % 3 == 0) 3.5.dp else if (charCode % 2 == 0) 2.dp else 1.2.dp
-            Box(
-                modifier = Modifier
-                    .width(width)
-                    .fillMaxHeight()
-                    .background(Color(0xFF23222B))
-            )
+        val quietZoneModules = 10f
+        val moduleWidth = size.width / (modules.size + quietZoneModules * 2)
+        modules.forEachIndexed { index, isBar ->
+            if (isBar) {
+                drawRect(
+                    color = Color(0xFF23222B),
+                    topLeft = Offset((quietZoneModules + index) * moduleWidth, 0f),
+                    size = Size(moduleWidth, size.height)
+                )
+            }
         }
     }
 }

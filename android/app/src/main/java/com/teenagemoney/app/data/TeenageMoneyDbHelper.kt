@@ -144,12 +144,14 @@ class TeenageMoneyDbHelper(context: Context) : SQLiteOpenHelper(context, DATABAS
         val dob    = getPreference("dob",    "")
         val age    = getPreference("age",    "0").toIntOrNull() ?: 0
         val status = getPreference("status", "")
+        val avatarUri = getPreference("avatar_uri", "")
         return UserProfile(
             name = name,
             dateOfBirth = dob,
             age = age,
             status = status,
-            onboardingCompleted = completed
+            onboardingCompleted = completed,
+            avatarUri = avatarUri
         )
     }
 
@@ -159,6 +161,7 @@ class TeenageMoneyDbHelper(context: Context) : SQLiteOpenHelper(context, DATABAS
         setPreference("age",                   profile.age.toString())
         setPreference("status",                profile.status)
         setPreference("onboarding_completed",  if (profile.onboardingCompleted) "true" else "false")
+        setPreference("avatar_uri",             profile.avatarUri)
     }
 
     // --- Spaces ---

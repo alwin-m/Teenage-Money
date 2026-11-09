@@ -1,6 +1,7 @@
 package com.teenagemoney.app.ui
 
 import android.content.Context
+import android.content.Intent
 import android.provider.Settings
 import android.os.Build
 import android.os.VibrationEffect
@@ -49,6 +50,8 @@ import com.teenagemoney.app.ui.components.AddMoneySheet
 import com.teenagemoney.app.ui.components.AddSpaceSheet
 import com.teenagemoney.app.ui.components.AdjustBalanceSheet
 import com.teenagemoney.app.ui.components.EditProfileSheet
+import com.teenagemoney.app.ui.components.SalaryAllocationSheet
+import com.teenagemoney.app.ui.components.CreatorDetailsSheet
 import com.teenagemoney.app.ui.components.BottomNavBar
 import com.teenagemoney.app.ui.components.ReceiptDialog
 import com.teenagemoney.app.ui.screens.ActivityScreen
@@ -90,6 +93,9 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
     var showAddSpace by remember { mutableStateOf(false) }
     var showAddCategory by remember { mutableStateOf(false) }
     var showEditProfile by remember { mutableStateOf(false) }
+    var salaryAllocationSalary by remember { mutableStateOf<Double?>(null) }
+    var salaryAllocation by remember { mutableStateOf(repository.getSalaryAllocation()) }
+    var showCreatorDetails by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<MoneySpace?>(null) }
     var categories by remember { mutableStateOf(repository.getCategories()) }
     var soundEnabled by remember { mutableStateOf(repository.isSoundEnabled()) }
@@ -139,6 +145,24 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
         }
     }
 
+    val profilePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+        userProfile?.let { current ->
+            val updated = current.copy(avatarUri = uri.toString())
+            repository.saveUserProfile(updated)
+            userProfile = updated
+            showToast("Profile photo updated")
+        }
+    }
+
     LaunchedEffect(toastText) {
         if (toastText.isNotEmpty()) {
             delay(2400)
@@ -169,7 +193,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             val spendingSpace = spaces.find { it.name == "Spending" }
             val spendingBalance = spendingSpace?.balance ?: 0.0
 
-            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddSpace || showAddCategory || showEditProfile || editingSpace != null || activeTab != "Home") {
+            BackHandler(enabled = activeReceipt != null || showAddExpense || showAddMoney || showAddSpace || showAddCategory || showEditProfile || salaryAllocationSalary != null || showCreatorDetails || editingSpace != null || activeTab != "Home") {
                 when {
                     activeReceipt != null -> activeReceipt = null
                     showAddExpense -> showAddExpense = false
@@ -177,6 +201,8 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                     showAddSpace -> showAddSpace = false
                     showAddCategory -> showAddCategory = false
                     showEditProfile -> showEditProfile = false
+                    salaryAllocationSalary != null -> salaryAllocationSalary = null
+                    showCreatorDetails -> showCreatorDetails = false
                     editingSpace != null -> editingSpace = null
                     else -> activeTab = "Home"
                 }
@@ -205,6 +231,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                         "Home" -> {
                             HomeScreen(
                                 userName = displayName,
+                avatarUri = userProfile?.avatarUri.orEmpty(),
                                 spaces = spaces,
                                 transactions = transactions,
                                 onAddMoneyClick = {
@@ -248,6 +275,8 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                             ProfileScreen(
                                 profile = userProfile,
                                 monthlySalary = repository.getMonthlySalary(),
+                                 salaryAllocation = salaryAllocation,
+                profileAvatarUri = userProfile?.avatarUri.orEmpty(),
                                 spaces = spaces,
                                 transactions = transactions,
                                 soundEnabled = soundEnabled,
@@ -255,14 +284,26 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                 appVersion = BuildConfig.VERSION_NAME,
                                 buildId = BuildConfig.BUILD_ID,
                                 onEditProfile = { showEditProfile = true },
+                onEditProfilePhoto = { profilePhotoLauncher.launch(arrayOf("image/*")) },
                                 onPrivacyToggle = { enabled ->
                                     amountsMasked = enabled
                                     repository.savePrivacyMode(enabled)
                                 },
                                 onSaveSalary = { salary ->
-                                    repository.saveMonthlySalary(salary)
-                                    showToast("Monthly salary saved")
+                                     if (!salary.isFinite() || salary <= 0.0) {
+                                         showToast("Enter a valid monthly salary")
+                                     } else {
+                                         repository.saveMonthlySalary(salary)
+                                         salaryAllocationSalary = salary
+                                         showToast("Monthly salary saved")
+                                     }
                                 },
+                                 onEditSalaryAllocation = {
+                                     val savedSalary = repository.getMonthlySalary()
+                                     if (savedSalary > 0.0) salaryAllocationSalary = savedSalary
+                                     else showToast("Save a monthly salary first")
+                                 },
+                                 onShowCreatorDetails = { showCreatorDetails = true },
                                 onSoundEnabledChange = { enabled ->
                                     soundEnabled = enabled
                                     repository.saveSoundEnabled(enabled)
@@ -278,6 +319,7 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                                      spaces.find { it.name == "Spending" }?.let { editingSpace = it }
                                          ?: showToast("Spending space is not available")
                                  },
+                                 onEditSpaceBalance = { editingSpace = it },
                                 onBack = { activeTab = "Home" }
                             )
                         }
@@ -384,10 +426,12 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
             editingSpace?.let { space ->
                 AdjustBalanceSheet(
                     space = space,
+                    amountsMasked = amountsMasked,
                     onDismiss = { editingSpace = null },
                     onSubmit = { newBalance ->
                         repository.correctSpaceBalance(space.name, newBalance)
                         spaces = repository.getSpaces()
+                        transactions = repository.getTransactions()
                         editingSpace = null
                         showToast("${space.name} balance updated")
                     },
@@ -430,11 +474,35 @@ fun TeenageMoneyApp(repository: TeenageMoneyRepository) {
                 )
             }
 
+            salaryAllocationSalary?.let { salary ->
+                SalaryAllocationSheet(
+                    salary = salary,
+                    initial = salaryAllocation,
+                    onDismiss = { salaryAllocationSalary = null },
+                    onSubmit = { allocation ->
+                        repository.saveSalaryAllocation(allocation)
+                        salaryAllocation = allocation
+                        salaryAllocationSalary = null
+                        showToast("Salary plan saved")
+                    },
+                    onError = { msg -> showToast(msg) }
+                )
+            }
+
+            if (showCreatorDetails) {
+                CreatorDetailsSheet(
+                    appVersion = BuildConfig.VERSION_NAME,
+                    buildId = BuildConfig.BUILD_ID,
+                    onDismiss = { showCreatorDetails = false }
+                )
+            }
+
             // Thermal Receipt
             activeReceipt?.let { tx ->
                 ReceiptDialog(
                     transaction = tx,
                     amountsMasked = amountsMasked,
+                    userName = displayName,
                     onDismiss = { activeReceipt = null }
                 )
             }

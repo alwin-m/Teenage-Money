@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.data.MoneySpace
+import com.teenagemoney.app.data.SalaryAllocation
 import com.teenagemoney.app.data.TeenageMoneyRepository
 import com.teenagemoney.app.ui.theme.TMCardDark
 import com.teenagemoney.app.ui.theme.TMCoral
@@ -527,19 +528,122 @@ fun EditProfileSheet(
 }
 
 @Composable
+fun SalaryAllocationSheet(
+    salary: Double,
+    initial: SalaryAllocation,
+    onDismiss: () -> Unit,
+    onSubmit: (SalaryAllocation) -> Unit,
+    onError: (String) -> Unit
+) {
+    var spendingText by remember { mutableStateOf(initial.spendingPercent.toString()) }
+    var savingsText by remember { mutableStateOf(initial.savingsPercent.toString()) }
+    var emergencyText by remember { mutableStateOf(initial.emergencyPercent.toString()) }
+    val spending = spendingText.toIntOrNull() ?: 0
+    val savings = savingsText.toIntOrNull() ?: 0
+    val emergency = emergencyText.toIntOrNull() ?: 0
+    val total = spending + savings + emergency
+
+    BottomSheetWrapper(onDismiss = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            SheetHeader(eyebrow = "MONTHLY PLAN", title = "How should salary flow?", onClose = onDismiss)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "${TeenageMoneyRepository.formatMoney(salary)} monthly · planning only, balances stay unchanged",
+                fontSize = 13.sp,
+                color = TMMuted
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            SalaryAllocationRow("Spending", spendingText, { spendingText = it }, salary * spending / 100.0)
+            Spacer(modifier = Modifier.height(10.dp))
+            SalaryAllocationRow("Savings", savingsText, { savingsText = it }, salary * savings / 100.0)
+            Spacer(modifier = Modifier.height(10.dp))
+            SalaryAllocationRow("Emergency", emergencyText, { emergencyText = it }, salary * emergency / 100.0)
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "Total: $total%${if (total == 100) " ✓" else " · must equal 100%"}",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (total == 100) TMMintText else TMCoral
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            Button(
+                onClick = {
+                    if (listOf(spending, savings, emergency).any { it !in 0..100 }) {
+                        onError("Each percentage must be between 0 and 100")
+                    } else if (total != 100) {
+                        onError("Percentages must add up to 100")
+                    } else {
+                        onSubmit(SalaryAllocation(spending, savings, emergency))
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = TMCoral),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) { Text("Save salary plan", color = TMWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        }
+    }
+}
+
+@Composable
+private fun SalaryAllocationRow(
+    label: String,
+    percent: String,
+    onPercentChange: (String) -> Unit,
+    amount: Double
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, modifier = Modifier.weight(1f), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TMInk)
+        Box(modifier = Modifier.width(88.dp)) {
+            SheetInputField(
+                value = percent,
+                onValueChange = { onPercentChange(it.filter(Char::isDigit).take(3)) },
+                placeholder = "0%",
+                keyboardType = KeyboardType.Number
+            )
+        }
+        Text(TeenageMoneyRepository.formatMoney(amount), fontSize = 13.sp, color = TMMuted, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun CreatorDetailsSheet(
+    appVersion: String,
+    buildId: String,
+    onDismiss: () -> Unit
+) {
+    BottomSheetWrapper(onDismiss = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            SheetHeader(eyebrow = "ABOUT THIS APP", title = "Made with care", onClose = onDismiss)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Author", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMMuted)
+            Text("Alwin Madhu", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TMInk)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Watermark / creator identity", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMMuted)
+            Text("© j_e_e_n._", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TMInk)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Offline-first personal money awareness. Your financial records stay on this device unless you explicitly export or share them.", fontSize = 13.sp, color = TMMuted)
+            Spacer(modifier = Modifier.height(14.dp))
+            Text("Version $appVersion", fontSize = 13.sp, color = TMInk, fontWeight = FontWeight.SemiBold)
+            Text("Build $buildId", fontSize = 12.sp, color = TMMuted)
+        }
+    }
+}
+
+@Composable
 fun AdjustBalanceSheet(
     space: MoneySpace,
+    amountsMasked: Boolean = false,
     onDismiss: () -> Unit,
     onSubmit: (Double) -> Unit,
     onError: (String) -> Unit
 ) {
-    var amountText by remember { mutableStateOf(space.balance.toString().removeSuffix(".0")) }
+    var amountText by remember { mutableStateOf(if (amountsMasked) "" else space.balance.toString().removeSuffix(".0")) }
     var confirm by remember { mutableStateOf(false) }
     BottomSheetWrapper(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             SheetHeader(eyebrow = "EDIT BALANCE", title = "Change ${space.name}?", onClose = onDismiss)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Current balance: ${TeenageMoneyRepository.formatMoney(space.balance)}", fontSize = 13.sp, color = TMMuted)
+            Text("Current balance: ${TeenageMoneyRepository.displayMoney(space.balance, amountsMasked)}", fontSize = 13.sp, color = TMMuted)
             Spacer(modifier = Modifier.height(16.dp))
             Text("New balance", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TMMuted)
             Spacer(modifier = Modifier.height(6.dp))

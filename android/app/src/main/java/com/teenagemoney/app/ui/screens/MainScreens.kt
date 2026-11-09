@@ -1,5 +1,6 @@
 package com.teenagemoney.app.ui.screens
 
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,15 +37,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.teenagemoney.app.data.MoneySpace
 import com.teenagemoney.app.data.TeenageMoneyRepository
+import com.teenagemoney.app.data.SalaryAllocation
 import com.teenagemoney.app.data.TransactionItem
 import com.teenagemoney.app.ui.components.LogExpenseButton
 import com.teenagemoney.app.ui.components.MonthCalendarCard
 import com.teenagemoney.app.ui.components.PeriodSwitcher
+import com.teenagemoney.app.ui.components.ProfileAvatar
 import com.teenagemoney.app.ui.components.RecentActivitySection
 import com.teenagemoney.app.ui.components.SpacesSection
 import com.teenagemoney.app.ui.components.SpendingHeroCard
@@ -69,6 +78,7 @@ import com.teenagemoney.app.ui.theme.TMPeachBorder
 import com.teenagemoney.app.ui.theme.TMPeachText
 import com.teenagemoney.app.ui.theme.TMPurple
 import com.teenagemoney.app.ui.theme.TMWhite
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 // ---------------------------------------------------------------------------
@@ -78,6 +88,7 @@ import java.time.LocalDate
 @Composable
 fun HomeScreen(
     userName: String,
+    avatarUri: String = "",
     spaces: List<MoneySpace>,
     transactions: List<TransactionItem>,
     onAddMoneyClick: () -> Unit,
@@ -94,28 +105,33 @@ fun HomeScreen(
     val spendingBalance = spendingSpace?.balance ?: 0.0
     val expenseCount    = transactions.count { it.type == "expense" }
     val otherSpaceCount = spaces.count { it.name != "Spending" }
+    val today = LocalDate.now(java.time.ZoneId.systemDefault())
+    val currentWeekStart = today.with(DayOfWeek.MONDAY)
 
-    val spentThisWeek = remember(transactions) {
-        TeenageMoneyRepository.calcSpentThisWeek(transactions)
+    var weekStart by remember(today) { mutableStateOf(currentWeekStart) }
+    val currentMonthStart = today.withDayOfMonth(1)
+    var monthStart by remember(today) { mutableStateOf(currentMonthStart) }
+    val spentThisWeek = remember(transactions, weekStart) {
+        TeenageMoneyRepository.calcSpentForWeek(transactions, weekStart)
     }
-    val dailyTotals = remember(transactions) {
-        TeenageMoneyRepository.calcWeekDailyTotals(transactions)
+    val dailyTotals = remember(transactions, weekStart) {
+        TeenageMoneyRepository.calcWeekDailyTotals(transactions, weekStart)
     }
-    val spentThisMonth = remember(transactions) {
-        TeenageMoneyRepository.calcSpentThisMonth(transactions)
+    val spentThisMonth = remember(transactions, monthStart) {
+        TeenageMoneyRepository.calcSpentForMonth(transactions, monthStart)
     }
-    val monthDailyTotals = remember(transactions) {
-        TeenageMoneyRepository.calcMonthDailyTotals(transactions)
+    val monthDailyTotals = remember(transactions, monthStart) {
+        TeenageMoneyRepository.calcMonthDailyTotals(transactions, monthStart)
     }
     var selectedPeriod by remember { mutableStateOf("Week") }
-    var selectedDayIndex by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value - 1) }
-    var selectedMonthDay by remember { mutableIntStateOf(LocalDate.now().dayOfMonth) }
-    val selectedDayTransactions = remember(transactions, selectedDayIndex) {
-        TeenageMoneyRepository.expensesOnWeekDay(transactions, selectedDayIndex)
+    var selectedDayIndex by remember(today) { mutableIntStateOf(today.dayOfWeek.value - 1) }
+    var selectedMonthDay by remember(today) { mutableIntStateOf(today.dayOfMonth) }
+    val selectedDayTransactions = remember(transactions, selectedDayIndex, weekStart) {
+        TeenageMoneyRepository.expensesOnWeekDay(transactions, weekStart, selectedDayIndex)
     }
-    val selectedMonthDate = LocalDate.now().withDayOfMonth(selectedMonthDay)
-    val selectedMonthTransactions = remember(transactions, selectedMonthDay) {
-        TeenageMoneyRepository.expensesOnMonthDay(transactions, selectedMonthDay)
+    val selectedMonthDate = monthStart.withDayOfMonth(selectedMonthDay.coerceAtMost(monthStart.lengthOfMonth()))
+    val selectedMonthTransactions = remember(transactions, selectedMonthDay, monthStart) {
+        TeenageMoneyRepository.expensesOnMonthDay(transactions, monthStart, selectedMonthDay)
     }
 
     Column(
@@ -124,7 +140,7 @@ fun HomeScreen(
             .background(TMBackground)
             .verticalScroll(rememberScrollState())
     ) {
-        TopHeader(userName = userName, onProfileClick = onProfileClick)
+        TopHeader(userName = userName, avatarUri = avatarUri, onProfileClick = onProfileClick)
 
         Column(
             modifier = Modifier
@@ -144,7 +160,19 @@ fun HomeScreen(
                     letterSpacing = 1.1.sp,
                     color = TMMuted
                 )
-                PeriodSwitcher(selected = selectedPeriod, onSelected = { selectedPeriod = it })
+                PeriodSwitcher(
+                    selected = selectedPeriod,
+                    onSelected = {
+                        selectedPeriod = it
+                        if (it == "Week") {
+                            weekStart = currentWeekStart
+                            selectedDayIndex = today.dayOfWeek.value - 1
+                        } else {
+                            monthStart = currentMonthStart
+                            selectedMonthDay = today.dayOfMonth
+                        }
+                    }
+                )
             }
 
             SpendingHeroCard(
@@ -170,7 +198,15 @@ fun HomeScreen(
                     selectedDay = selectedMonthDate,
                     selectedDayTransactions = selectedMonthTransactions,
                     amountsMasked = amountsMasked,
-                    onDayClick = { selectedMonthDay = it.dayOfMonth }
+                    monthStart = monthStart,
+                    onDayClick = { selectedMonthDay = it.dayOfMonth },
+                    onMonthChange = { offset ->
+                        val nextMonthStart = monthStart.plusMonths(offset.toLong()).withDayOfMonth(1)
+                        if (!nextMonthStart.isAfter(currentMonthStart)) {
+                            monthStart = nextMonthStart
+                            selectedMonthDay = if (nextMonthStart == currentMonthStart) today.dayOfMonth else 1
+                        }
+                    }
                 )
             } else {
                 WeekRhythmCard(
@@ -180,7 +216,15 @@ fun HomeScreen(
                     selectedDayTransactions = selectedDayTransactions,
                     amountsMasked = amountsMasked,
                     onViewAllClick = onSeeAllActivityClick,
-                    onDayClick = { selectedDayIndex = it }
+                    weekStart = weekStart,
+                    onDayClick = { selectedDayIndex = it },
+                    onWeekChange = { offset ->
+                        val nextWeekStart = weekStart.plusWeeks(offset.toLong())
+                        if (!nextWeekStart.isAfter(currentWeekStart)) {
+                            weekStart = nextWeekStart
+                            if (nextWeekStart == currentWeekStart) selectedDayIndex = today.dayOfWeek.value - 1
+                        }
+                    }
                 )
             }
 
@@ -333,6 +377,8 @@ fun ActivityScreen(
 fun ProfileScreen(
     profile: com.teenagemoney.app.data.UserProfile?,
     monthlySalary: Double,
+    salaryAllocation: SalaryAllocation = SalaryAllocation(),
+    profileAvatarUri: String = "",
     spaces: List<MoneySpace>,
     transactions: List<TransactionItem>,
     soundEnabled: Boolean,
@@ -340,12 +386,16 @@ fun ProfileScreen(
     appVersion: String,
     buildId: String,
     onEditProfile: () -> Unit,
+    onEditProfilePhoto: () -> Unit = {},
     onPrivacyToggle: (Boolean) -> Unit,
     onSaveSalary: (Double) -> Unit,
+    onEditSalaryAllocation: () -> Unit = {},
+    onShowCreatorDetails: () -> Unit = {},
     onSoundEnabledChange: (Boolean) -> Unit,
     onExport: () -> Unit,
     onAddMoneyClick: () -> Unit = {},
     onEditSpendingBalance: () -> Unit = {},
+    onEditSpaceBalance: (MoneySpace) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     var salaryText by remember { mutableStateOf(if (monthlySalary > 0) monthlySalary.toInt().toString() else "") }
@@ -359,7 +409,18 @@ fun ProfileScreen(
     ) {
         Spacer(modifier = Modifier.height(14.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(TMWhite).clickable(onClick = onBack), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(TMWhite)
+                    .clickable(onClick = onBack)
+                    .semantics {
+                        contentDescription = "Back"
+                        role = Role.Button
+                    },
+                contentAlignment = Alignment.Center
+            ) {
                 Text("‹", fontSize = 30.sp, color = TMInk)
             }
             Text("Teenage Money Profile", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TMInk)
@@ -369,10 +430,39 @@ fun ProfileScreen(
         }
 
         Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(modifier = Modifier.size(88.dp).clip(CircleShape).background(TMWhite).clickable { onEditProfile() }, contentAlignment = Alignment.Center) {
-                Text(initials, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = TMPeachText)
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(TMWhite)
+                    .clickable { onEditProfile() }
+                    .semantics {
+                        contentDescription = "Edit profile"
+                        role = Role.Button
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                ProfileAvatar(
+                    avatarUri = profileAvatarUri,
+                    initials = initials,
+                    modifier = Modifier.fillMaxSize(),
+                    contentDescription = "Profile photo"
+                )
             }
-            Row(modifier = Modifier.padding(top = 8.dp).clickable { onEditProfile() }, verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onEditProfilePhoto) {
+                Text(if (profileAvatarUri.isBlank()) "Add profile photo" else "Change profile photo", color = TMInk)
+            }
+            Row(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .heightIn(min = TMDimens.MinTouch)
+                    .clickable { onEditProfile() }
+                    .semantics {
+                        contentDescription = "Edit profile name"
+                        role = Role.Button
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(profile?.name?.ifBlank { "Your name" } ?: "Your name", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TMInk)
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("✎", fontSize = 18.sp, color = TMMuted)
@@ -397,6 +487,21 @@ fun ProfileScreen(
             SnapshotRow("Other spaces", TeenageMoneyRepository.displayMoney(otherSpacesBalance, amountsMasked))
             SnapshotRow("Recorded transactions", transactions.size.toString())
             Spacer(modifier = Modifier.height(8.dp))
+            Text("EDIT A MONEY SPACE", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = TMLightMuted)
+            spaces.forEach { space ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(space.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TMInk)
+                        Text(TeenageMoneyRepository.displayMoney(space.balance, amountsMasked), fontSize = 12.sp, color = TMMuted)
+                    }
+                    TextButton(onClick = { onEditSpaceBalance(space) }) {
+                        Text("Edit", color = TMCoral, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -424,10 +529,27 @@ fun ProfileScreen(
                 Box(modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(TMCoral).clickable { onSaveSalary(salaryText.toDoubleOrNull() ?: 0.0) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Text("Save salary", color = TMWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "Plan: ${salaryAllocation.spendingPercent}% spending · ${salaryAllocation.savingsPercent}% savings · ${salaryAllocation.emergencyPercent}% emergency",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 12.sp,
+                        color = TMMuted
+                    )
+                    TextButton(onClick = onEditSalaryAllocation) { Text("Adjust", color = TMCoral, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                }
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
-        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TMWhite).border(1.dp, TMLine, RoundedCornerShape(22.dp)).padding(20.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(TMWhite)
+                .border(1.dp, TMLine, RoundedCornerShape(22.dp))
+                .padding(20.dp)
+        ) {
             Column {
                 Text("APP PREFERENCES", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMLightMuted)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -466,7 +588,14 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(12.dp))
         ProfileMetric("EXPENSE ENTRIES", transactions.count { it.type == "expense" }.toString(), Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(14.dp))
-        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TMWhite).border(1.dp, TMLine, RoundedCornerShape(22.dp)).padding(20.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(TMWhite)
+                .border(1.dp, TMLine, RoundedCornerShape(22.dp))
+                .padding(20.dp)
+        ) {
             Column {
                 Text("WHERE IT WENT", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMLightMuted)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -480,7 +609,27 @@ fun ProfileScreen(
             }
         }
         Spacer(modifier = Modifier.height(14.dp))
-        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TMWhite).border(1.dp, TMLine, RoundedCornerShape(22.dp)).padding(20.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(TMWhite)
+                .border(1.dp, TMLine, RoundedCornerShape(22.dp))
+                .pointerInput(Unit) {
+                    var tapCount = 0
+                    var lastTapAt = 0L
+                    detectTapGestures {
+                        val now = SystemClock.uptimeMillis()
+                        tapCount = if (now - lastTapAt <= 600L) tapCount + 1 else 1
+                        lastTapAt = now
+                        if (tapCount == 3) {
+                            tapCount = 0
+                            onShowCreatorDetails()
+                        }
+                    }
+                }
+                .padding(20.dp)
+        ) {
             Column {
                 Text("ABOUT THIS APP", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.1.sp, color = TMLightMuted)
                 Spacer(modifier = Modifier.height(8.dp))

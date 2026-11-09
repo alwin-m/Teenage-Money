@@ -1,10 +1,13 @@
 package com.teenagemoney.app.ui.components
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -23,8 +27,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -33,6 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -62,6 +74,7 @@ import java.util.Locale
 @Composable
 fun TopHeader(
     userName: String,
+    avatarUri: String = "",
     onProfileClick: () -> Unit = {}
 ) {
     Row(
@@ -91,8 +104,44 @@ fun TopHeader(
                 },
             contentAlignment = Alignment.Center
         ) {
+            ProfileAvatar(
+                avatarUri = avatarUri,
+                initials = userName.firstOrNull()?.uppercase() ?: "TM",
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+@Composable
+fun ProfileAvatar(
+    avatarUri: String,
+    initials: String,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "Profile photo"
+) {
+    val context = LocalContext.current
+    val bitmap = remember(avatarUri) {
+        avatarUri.takeIf { it.isNotBlank() }?.let { rawUri ->
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(rawUri))?.use(BitmapFactory::decodeStream)
+            }.getOrNull()
+        }
+    }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    } else {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = userName.firstOrNull()?.uppercase() ?: "TM",
+                text = initials,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = TMWhite
@@ -115,7 +164,14 @@ fun SpendingHeroCard(
     onPrivacyToggle: () -> Unit
 ) {
     val amountText = TeenageMoneyRepository.displayMoney(spendingBalance, amountsMasked)
-    val privacyLabel = if (amountsMasked) "Show Balance" else "Hide Balance"
+    val privacyLabel = if (amountsMasked) "Show balance" else "Hide balance"
+    val amountFontSize = when {
+        amountText.length >= 16 -> 24.sp
+        amountText.length >= 13 -> 28.sp
+        amountText.length >= 11 -> 34.sp
+        amountText.length >= 9 -> 38.sp
+        else -> 44.sp
+    }
 
     Box(
         modifier = Modifier
@@ -148,39 +204,32 @@ fun SpendingHeroCard(
             ) {
                 Text(
                     text = amountText,
-                    fontSize = 44.sp,
+                    fontSize = amountFontSize,
                     fontWeight = FontWeight.Black,
                     color = TMInk,
-                    letterSpacing = (-1.5).sp,
+                    letterSpacing = if (amountText.length >= 13) (-0.8).sp else (-1.5).sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    modifier = Modifier.weight(1f, fill = false)
+                    softWrap = false,
+                    overflow = TextOverflow.Visible,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Spacer(modifier = Modifier.width(TMDimens.Space12))
 
-                // Hide/Show pill
-                Box(
+                // Eye-only privacy control
+                IconButton(
+                    onClick = onPrivacyToggle,
                     modifier = Modifier
+                        .size(48.dp)
                         .clip(RoundedCornerShape(TMDimens.Radius20))
                         .background(TMLine)
-                        .clickable(onClick = onPrivacyToggle)
                         .semantics { contentDescription = privacyLabel }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = if (amountsMasked) "👁" else "👁‍🗨",
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = privacyLabel,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TMInk
-                        )
-                    }
+                    Icon(
+                        imageVector = if (amountsMasked) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = null,
+                        tint = TMInk
+                    )
                 }
             }
 
@@ -248,13 +297,15 @@ fun WeekRhythmCard(
     selectedDayTransactions: List<TransactionItem>,
     amountsMasked: Boolean,
     onViewAllClick: () -> Unit,
-    onDayClick: (Int) -> Unit = {}
+    weekStart: LocalDate = LocalDate.now(ZoneId.systemDefault()).with(DayOfWeek.MONDAY),
+    onDayClick: (Int) -> Unit = {},
+    onWeekChange: (Int) -> Unit = {}
 ) {
     val today = LocalDate.now(ZoneId.systemDefault())
-    val weekDays = remember(today) {
-        val monday = today.with(DayOfWeek.MONDAY)
+    val currentWeekStart = today.with(DayOfWeek.MONDAY)
+    val weekDays = remember(weekStart) {
         (0..6).map { offset ->
-            val date = monday.plusDays(offset.toLong())
+            val date = weekStart.plusDays(offset.toLong())
             Triple(
                 date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
                 date.dayOfMonth.toString(),
@@ -265,6 +316,11 @@ fun WeekRhythmCard(
     val maxDaily = dailyTotals.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     val selectedTotal = selectedDayTransactions.sumOf { it.amount }
     val selectedMeta = weekDays.getOrNull(selectedDayIndex)
+    val weekLabel = if (weekStart == currentWeekStart) {
+        "This Week"
+    } else {
+        "${weekStart.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))} – ${weekStart.plusDays(6).format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))}"
+    }
 
     Box(
         modifier = Modifier
@@ -283,7 +339,7 @@ fun WeekRhythmCard(
             ) {
                 Column {
                     Text(
-                        text = "This Week",
+                        text = weekLabel,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = TMMuted
@@ -297,16 +353,23 @@ fun WeekRhythmCard(
                         letterSpacing = (-0.3).sp
                     )
                 }
-                TextButton(
-                    onClick = onViewAllClick,
-                    modifier = Modifier.heightIn(min = TMDimens.MinTouch)
-                ) {
-                    Text(
-                        text = "View all",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TMMuted
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { onWeekChange(-1) }, modifier = Modifier.heightIn(min = TMDimens.MinTouch)) {
+                        Text("‹", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TMInk)
+                    }
+                    TextButton(
+                        onClick = { onWeekChange(1) },
+                        enabled = weekStart < currentWeekStart,
+                        modifier = Modifier.heightIn(min = TMDimens.MinTouch)
+                    ) {
+                        Text("›", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (weekStart < currentWeekStart) TMInk else TMMuted.copy(alpha = 0.4f))
+                    }
+                    TextButton(
+                        onClick = onViewAllClick,
+                        modifier = Modifier.heightIn(min = TMDimens.MinTouch)
+                    ) {
+                        Text("View all", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TMMuted)
+                    }
                 }
             }
 
@@ -546,17 +609,20 @@ fun MonthCalendarCard(
     selectedDay: LocalDate,
     selectedDayTransactions: List<TransactionItem>,
     amountsMasked: Boolean,
-    onDayClick: (LocalDate) -> Unit
+    monthStart: LocalDate = LocalDate.now(ZoneId.systemDefault()).withDayOfMonth(1),
+    onDayClick: (LocalDate) -> Unit,
+    onMonthChange: (Int) -> Unit = {}
 ) {
     val today = LocalDate.now(ZoneId.systemDefault())
-    val firstDay = today.withDayOfMonth(1)
+    val currentMonthStart = today.withDayOfMonth(1)
+    val firstDay = monthStart.withDayOfMonth(1)
     val calendarCells = buildList<LocalDate?> {
         repeat(firstDay.dayOfWeek.value - 1) { add(null) }
         (1..today.lengthOfMonth()).forEach { add(firstDay.withDayOfMonth(it)) }
     }
     val maxDaily = dailyTotals.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     val selectedTotal = selectedDayTransactions.sumOf { it.amount }
-    val monthLabel = today.format(DateTimeFormatter.ofPattern("MMMM", Locale.ENGLISH))
+    val monthLabel = monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH))
     val selectedLabel = selectedDay.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))
 
     Column(verticalArrangement = Arrangement.spacedBy(TMDimens.Space12)) {
@@ -566,23 +632,31 @@ fun MonthCalendarCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = monthLabel,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.3).sp,
-                color = TMInk
-            )
-            Text(
-                text = today.format(DateTimeFormatter.ofPattern("EEE d", Locale.ENGLISH)),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TMMuted,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(TMDimens.Radius20))
-                    .background(TMLine)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            )
+            Text(text = monthLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp, color = TMInk)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (monthStart == currentMonthStart) {
+                    Text(
+                        text = today.format(DateTimeFormatter.ofPattern("EEE d", Locale.ENGLISH)),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TMMuted,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(TMDimens.Radius20))
+                            .background(TMLine)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+                TextButton(onClick = { onMonthChange(-1) }, modifier = Modifier.heightIn(min = TMDimens.MinTouch)) {
+                    Text("‹", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TMInk)
+                }
+                TextButton(
+                    onClick = { onMonthChange(1) },
+                    enabled = monthStart < currentMonthStart,
+                    modifier = Modifier.heightIn(min = TMDimens.MinTouch)
+                ) {
+                    Text("›", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (monthStart < currentMonthStart) TMInk else TMMuted.copy(alpha = 0.4f))
+                }
+            }
         }
 
         // Selected day summary pill

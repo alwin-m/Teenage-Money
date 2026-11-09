@@ -1,5 +1,28 @@
 # Teenage Money UI/UX history
 
+## TM-CHANGE-000009 — Profile planning and receipt sharing
+
+- **Base version:** `1.0.0`
+- **Target version:** `1.1.0`
+- **Status:** In progress
+- **Date:** 2026-11-03
+- **Screens:** Profile, receipt, Home state synchronization, and app metadata.
+- **Design intent:** Preserve the existing visual language while making existing controls more useful and keeping every financial value derived from persisted state.
+- **Behavior:** Salary save opens a planning-only percentage sheet; About triple-tap reveals creator metadata; receipt sharing produces a PNG with a working Code 128 barcode and a share-time balance visibility choice; Profile balance correction refreshes transactions immediately; profile photos can be selected locally and are reused on Home/Profile; Home Week and Month views browse historical periods while defaulting to today/current month.
+- **Data impact:** Salary percentages are stored as preferences. Receipt PNGs are temporary cache files shared through a non-exported `FileProvider`. No automatic salary transfer or balance mutation is introduced.
+- **Accessibility:** Creator/details and balance-share controls retain descriptive text; the barcode remains accompanied by its receipt identifier.
+- **Version:** `1.1.0`, Android `versionCode 2`.
+- **Verification:** `testDebugUnitTest`, `lintDebug`, `assembleDebug`, and `assembleRelease` passed. 12 unit tests passed with 0 failures/errors; lint reported 36 non-blocking warnings. Build ID: `1.1.0-20261103.1151`. Debug APK SHA-256: `071ED06EBD04EDF26E9D57342DD0EF5902A48EA707AF964B8760124C07E7EFCF`. Release APK SHA-256: `DDB8CC2CB19293933A5E24743DBA53BB93723B69C946AE13481D36272DB8CC70`. Device/emulator acceptance remains outstanding.
+
+## TM-CHANGE-000008 — Home usability corrections
+
+- **Date:** 2026-11-03
+- **Status:** In progress
+- **Scope:** Home startup transition, balance display, privacy control, Week/Month selection, and calendar date state.
+- **Design intent:** Preserve the current visual identity and card hierarchy; correct interaction and display behavior without redesigning the Home screen.
+- **Behavior:** Splash animations run together with a shorter handoff, long balances use smaller responsive type, privacy uses an eye-only accessible control, and switching periods returns selection to today using one device-local date basis.
+- **Verification:** `testDebugUnitTest`, `lintDebug`, and `assembleDebug` pending for this change. Device/emulator acceptance remains outstanding.
+
 ## TM-CHANGE-000007 — Profile balance correction
 
 - **Base version:** `1.0.0`

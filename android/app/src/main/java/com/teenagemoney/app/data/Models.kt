@@ -5,8 +5,17 @@ data class UserProfile(
     val dateOfBirth: String,
     val age: Int,
     val status: String,
-    val onboardingCompleted: Boolean
+    val onboardingCompleted: Boolean,
+    val avatarUri: String = ""
 )
+
+data class SalaryAllocation(
+    val spendingPercent: Int = 50,
+    val savingsPercent: Int = 30,
+    val emergencyPercent: Int = 20
+) {
+    val totalPercent: Int get() = spendingPercent + savingsPercent + emergencyPercent
+}
 
 data class TransactionItem(
     val id: Long,
@@ -40,3 +49,10 @@ data class SavingsGoal(
     val tint: String,
     val emoji: String
 )
+
+enum class FinancialPosition(val label: String, val colorHex: String) {
+    HEALTHY("● Healthy", "#1B9E5A"),
+    ON_TRACK("● On track", "#3B82F6"),
+    CAREFUL("● Careful", "#E88B1E"),
+    LOW_FUNDS("● Low funds", "#E8441E")
+}
